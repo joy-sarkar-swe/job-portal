@@ -1,8 +1,4 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsEnum,
-} from 'class-validator';
+import { IsEnum, IsNotEmpty, IsString } from 'class-validator';
 import { JobType } from '../../schemas/job.schema';
 
 export class CreateJobDto {

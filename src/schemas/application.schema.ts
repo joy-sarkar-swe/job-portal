@@ -1,7 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { Job } from './job.schema';
-import { User } from './user.schema';
 
 export type ApplicationDocument = Application & Document;
 
@@ -11,7 +10,7 @@ export class Application {
   job: Types.ObjectId | Job;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  jobseeker: Types.ObjectId | User;
+  jobseeker: Types.ObjectId;
 
   @Prop({ default: Date.now })
   appliedAt: Date;

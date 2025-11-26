@@ -43,6 +43,7 @@ export class AuthService {
     await user.save();
 
     return {
+      statusCode: 201,
       message: 'User registered successfully',
       user: {
         id: user._id,
@@ -74,6 +75,11 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
+    // If employer, check if approved
+    if (user.role === UserRole.EMPLOYER && !user.isEmployerApproved) {
+      throw new UnauthorizedException('Your employer account is not approved');
+    }
+
     // Generate JWT token
     const payload = {
       sub: user._id,
@@ -86,6 +92,7 @@ export class AuthService {
     const accessToken = this.jwtService.sign(payload);
 
     return {
+      statusCode: 200,
       message: 'Login successful',
       accessToken,
       user: {

@@ -4,7 +4,7 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import { UserRole } from '../../schemas/user.schema';
+import { UserRole } from 'src/schemas/user.schema';
 
 @Injectable()
 export class EmployerApprovalGuard implements CanActivate {

@@ -4,13 +4,13 @@ import { IsInt, IsOptional, Min } from 'class-validator';
 export class MyApplicationsQueryDto {
   @IsOptional()
   @Type(() => Number)
-  @IsInt()
+  @IsInt({ message: 'Page must be an integer' })
   @Min(1)
   page?: number = 1;
 
   @IsOptional()
   @Type(() => Number)
-  @IsInt()
+  @IsInt({ message: 'Limit must be an integer' })
   @Min(1)
   limit?: number = 10;
 }

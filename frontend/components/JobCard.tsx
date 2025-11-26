@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Building2, MapPin } from "lucide-react";
+import Link from "next/link";
 
 export interface Job {
   id: number;
@@ -9,11 +10,12 @@ export interface Job {
   company: string;
   location: string;
   jobType: string;
+  description?: string;
+  salaryRange?: string;
 }
 
 interface JobCardProps {
   job: Job;
-  onViewDetails?: (jobId: number) => void;
 }
 
 const getJobTypeBadgeVariant = (
@@ -33,7 +35,7 @@ const getJobTypeBadgeVariant = (
   }
 };
 
-export function JobCard({ job, onViewDetails }: JobCardProps) {
+export function JobCard({ job }: JobCardProps) {
   return (
     <Card className='hover:shadow-lg transition-shadow cursor-pointer'>
       <CardContent className='p-6'>
@@ -63,11 +65,8 @@ export function JobCard({ job, onViewDetails }: JobCardProps) {
           </div>
 
           {/* View Details Button */}
-          <Button
-            className='w-full mt-4'
-            variant='outline'
-            onClick={() => onViewDetails?.(job.id)}>
-            View Details
+          <Button className='w-full mt-4' variant='outline' asChild>
+            <Link href={`/jobs/${job.id}`}>View Details</Link>
           </Button>
         </div>
       </CardContent>

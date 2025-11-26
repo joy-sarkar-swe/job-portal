@@ -1,56 +1,7 @@
 import { Job } from "@/components/JobCard";
 import { FilterOptions } from "@/components/JobFilters";
+import { generateMockJobs } from "@/lib/mockData";
 import { useCallback, useState } from "react";
-
-// Extended mock data for demonstration
-const generateMockJobs = (count: number, offset: number): Job[] => {
-  const titles = [
-    "Senior Frontend Developer",
-    "Backend Engineer",
-    "Full Stack Developer",
-    "UI/UX Designer",
-    "DevOps Engineer",
-    "Product Manager",
-    "Data Scientist",
-    "Mobile Developer",
-    "Security Engineer",
-    "QA Engineer",
-    "Software Architect",
-    "Cloud Engineer",
-  ];
-
-  const companies = [
-    "Tech Corp",
-    "StartUp Inc",
-    "Digital Solutions",
-    "Creative Agency",
-    "Cloud Systems",
-    "Innovation Labs",
-    "Data Dynamics",
-    "Mobile First",
-    "Secure Tech",
-    "Quality Works",
-  ];
-
-  const locations = [
-    "New York, NY",
-    "San Francisco, CA",
-    "Austin, TX",
-    "Los Angeles, CA",
-    "Seattle, WA",
-    "Boston, MA",
-  ];
-
-  const jobTypes = ["Full-time", "Remote", "Part-time", "Contract"];
-
-  return Array.from({ length: count }, (_, i) => ({
-    id: offset + i + 1,
-    title: titles[i % titles.length],
-    company: companies[i % companies.length],
-    location: locations[i % locations.length],
-    jobType: jobTypes[i % jobTypes.length],
-  }));
-};
 
 const JOBS_PER_PAGE = 9;
 const TOTAL_JOBS = 50; // Simulate total available jobs

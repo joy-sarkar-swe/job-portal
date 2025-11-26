@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import * as bcrypt from 'bcrypt';
 import { Model } from 'mongoose';
-import { User, UserDocument, UserRole } from '../schemas/user.schema';
+import { User, UserDocument, UserRole } from '../src/schemas/user.schema';
 
 @Injectable()
 export class DatabaseInitService implements OnModuleInit {

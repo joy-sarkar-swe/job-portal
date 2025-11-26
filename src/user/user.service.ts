@@ -6,7 +6,7 @@ import {
   ApplicationDocument,
 } from '../schemas/application.schema';
 import { User, UserDocument, UserRole } from '../schemas/user.schema';
-import { AppliedJobsPaginationDto } from './dto/applied-jobs.dto';
+import { AppliedJobsQueryDto } from './dto/applied-jobs-query.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
@@ -75,7 +75,7 @@ export class UserService {
     };
   }
 
-  async getAppliedJobs(userId: string, query: AppliedJobsPaginationDto) {
+  async getAppliedJobs(userId: string, query: AppliedJobsQueryDto) {
     const { page = 1, limit = 10 } = query;
 
     const skip = (page - 1) * limit;

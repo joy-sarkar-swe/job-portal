@@ -4,7 +4,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { UserRole } from '../schemas/user.schema';
-import { AppliedJobsPaginationDto } from './dto/applied-jobs.dto';
+import { AppliedJobsQueryDto } from './dto/applied-jobs-query.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UserService } from './user.service';
 
@@ -31,7 +31,7 @@ export class UserController {
   @Roles(UserRole.JOBSEEKER)
   async getAppliedJobs(
     @GetUser() user: any,
-    @Query() query: AppliedJobsPaginationDto,
+    @Query() query: AppliedJobsQueryDto,
   ) {
     return this.userService.getAppliedJobs(user.userId, query);
   }

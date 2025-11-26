@@ -1,7 +1,7 @@
 import { Type } from 'class-transformer';
 import { IsInt, IsOptional, Min } from 'class-validator';
 
-export class AppliedJobsPaginationDto {
+export class AppliedJobsQueryDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt({ message: 'Page must be an integer' })

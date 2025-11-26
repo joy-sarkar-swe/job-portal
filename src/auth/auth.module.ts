@@ -15,7 +15,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       secret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
       signOptions: {
         expiresIn: (process.env.JWT_EXPIRATION as string) || '7d',
-      },
+      } as any,
     }),
   ],
   controllers: [AuthController],

@@ -17,7 +17,7 @@ import { ReactNode, useState } from "react";
 
 interface DashboardLayoutProps {
   children: ReactNode;
-  userRole: "jobseeker" | "employer";
+  userRole: "jobseeker" | "employer" | "admin";
 }
 
 const jobSeekerNav = [
@@ -56,12 +56,50 @@ const employerNav = [
   },
 ];
 
+const adminNav = [
+  {
+    title: "Dashboard",
+    href: "/admin",
+    icon: LayoutDashboard,
+  },
+  {
+    title: "Pending Employers",
+    href: "/admin/employers/pending",
+    icon: User,
+  },
+  {
+    title: "All Jobs",
+    href: "/admin/jobs",
+    icon: Briefcase,
+  },
+  {
+    title: "Applications",
+    href: "/admin/applications",
+    icon: FileText,
+  },
+  {
+    title: "Manage Users",
+    href: "/admin/users",
+    icon: User,
+  },
+];
+
 export function DashboardLayout({ children, userRole }: DashboardLayoutProps) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const navigation = userRole === "jobseeker" ? jobSeekerNav : employerNav;
-  const dashboardTitle = userRole === "jobseeker" ? "Job Seeker" : "Employer";
+  const navigation =
+    userRole === "jobseeker"
+      ? jobSeekerNav
+      : userRole === "employer"
+      ? employerNav
+      : adminNav;
+  const dashboardTitle =
+    userRole === "jobseeker"
+      ? "Job Seeker"
+      : userRole === "employer"
+      ? "Employer"
+      : "Admin";
 
   const handleLogout = () => {
     // TODO: Implement logout logic

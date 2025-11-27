@@ -3,13 +3,10 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCurrentUser } from "@/lib/mockData";
 import { Briefcase, FileText, User } from "lucide-react";
 import Link from "next/link";
 
 export default function JobSeekerDashboard() {
-  const user = getCurrentUser();
-
   return (
     <DashboardLayout userRole='jobseeker'>
       <div className='space-y-6'>

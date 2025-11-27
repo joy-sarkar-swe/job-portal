@@ -28,9 +28,6 @@ export default function AppliedJobsPage() {
     const fetchAppliedJobs = async () => {
       setLoading(true);
 
-      // Replace with actual token logic
-      const token = localStorage.getItem("token") || "";
-
       const res = await getMyApplicationsAction({ page: 1, limit: 50 });
 
       if (res.success && res.data) {

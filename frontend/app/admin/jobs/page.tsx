@@ -36,7 +36,7 @@ export default function AllJobsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
 
-  // Fetch jobs from API
+  // Fetch jobs
   const fetchJobs = async () => {
     setLoading(true);
     setError("");
@@ -45,7 +45,7 @@ export default function AllJobsPage() {
       const res = await getAllJobsAction({
         search: searchQuery || undefined,
         jobType: typeFilter !== "all" ? typeFilter.toLowerCase() : undefined,
-        limit: 10, // or any default
+        limit: 10,
       });
 
       if (!res.success) {

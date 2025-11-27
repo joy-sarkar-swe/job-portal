@@ -148,7 +148,6 @@ export default function PendingEmployersPage() {
 
         {/* SEARCH BAR & TOTAL COUNT */}
         <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
-          {/* Search Field */}
           <div className='relative w-full md:w-80'>
             <Search className='absolute left-3 top-2.5 h-4 w-4 text-gray-500' />
             <input
@@ -160,7 +159,6 @@ export default function PendingEmployersPage() {
             />
           </div>
 
-          {/* Total count */}
           <p className='text-gray-600 text-sm'>
             Total: {pagination?.total || 0} pending employers
           </p>

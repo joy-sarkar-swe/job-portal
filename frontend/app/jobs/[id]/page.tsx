@@ -30,7 +30,7 @@ export default function JobDetailsPage() {
   const [hasApplied, setHasApplied] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [showLoginAlert, setShowLoginAlert] = useState(false); // <-- new state
+  const [showLoginAlert, setShowLoginAlert] = useState(false);
 
   // Fetch job details and user profile
   useEffect(() => {

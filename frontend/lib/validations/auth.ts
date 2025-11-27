@@ -52,6 +52,9 @@ export const registerSchema = z
     path: ["confirmPassword"],
   });
 
+/*
+ * Update Profile validation schema
+ */
 export const updateProfileSchema = z.object({
   bio: z.string().max(500).optional(),
   skills: z.array(z.string()).optional(),

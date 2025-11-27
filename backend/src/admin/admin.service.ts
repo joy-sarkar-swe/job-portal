@@ -19,6 +19,34 @@ export class AdminService {
     private applicationModel: Model<ApplicationDocument>,
   ) {}
 
+  async getOverview() {
+    const [
+      pendingEmployersCount,
+      totalJobsCount,
+      blockedUsersCount,
+      totalApplicationsCount,
+    ] = await Promise.all([
+      this.userModel.countDocuments({
+        role: UserRole.EMPLOYER,
+        isEmployerApproved: false,
+      }),
+      this.jobModel.countDocuments(),
+      this.userModel.countDocuments({ isBlocked: true }),
+      this.applicationModel.countDocuments(),
+    ]);
+
+    return {
+      statusCode: 200,
+      message: 'Admin overview retrieved successfully',
+      overview: {
+        pendingEmployersCount,
+        totalJobsCount,
+        blockedUsersCount,
+        totalApplicationsCount,
+      },
+    };
+  }
+
   async getPendingEmployers() {
     const pendingEmployers = await this.userModel
       .find({

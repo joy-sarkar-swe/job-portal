@@ -20,6 +20,11 @@ import { GetUsersQueryDto } from './dto/get-user-query.dto';
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
+  @Get('overview')
+  async getOverview() {
+    return this.adminService.getOverview();
+  }
+
   @Get('users')
   async getAllUsers(@Query() query: GetUsersQueryDto) {
     return this.adminService.getAllUsers(query);

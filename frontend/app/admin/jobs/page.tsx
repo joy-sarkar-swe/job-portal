@@ -92,21 +92,6 @@ export default function AllJobsPage() {
   const getStatusColor = (status: string) =>
     status === "active" ? "default" : "secondary";
 
-  const getJobTypeColor = (type: string) => {
-    switch (type) {
-      case "Full-time":
-        return "default";
-      case "Remote":
-        return "secondary";
-      case "Part-time":
-        return "outline";
-      case "Contract":
-        return "destructive";
-      default:
-        return "default";
-    }
-  };
-
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -191,9 +176,7 @@ export default function AllJobsPage() {
                     <div className='flex items-start justify-between gap-4'>
                       <div className='flex-1'>
                         <div className='flex items-center gap-2 mb-2'>
-                          <Badge variant={getJobTypeColor(job.jobType)}>
-                            {job.jobType}
-                          </Badge>
+                          <Badge variant='default'>{job.jobType}</Badge>
                         </div>
                         <h3 className='text-xl font-semibold text-gray-900 dark:text-white mb-2'>
                           {job.title}

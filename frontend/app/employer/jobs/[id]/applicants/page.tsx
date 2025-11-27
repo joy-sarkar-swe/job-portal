@@ -109,23 +109,6 @@ export default function ApplicantsPage() {
     });
   };
 
-  const getStatusColor = (
-    status: string
-  ): "default" | "secondary" | "destructive" | "outline" => {
-    switch (status) {
-      case "pending":
-        return "secondary";
-      case "reviewed":
-        return "default";
-      case "accepted":
-        return "default";
-      case "rejected":
-        return "destructive";
-      default:
-        return "secondary";
-    }
-  };
-
   if (loading) {
     return (
       <DashboardLayout userRole='employer'>
@@ -218,7 +201,7 @@ export default function ApplicantsPage() {
                             Applied on {formatDate(applicant.appliedAt)}
                           </p>
                         </div>
-                        <Badge variant={getStatusColor(applicant.status)}>
+                        <Badge variant='default'>
                           {applicant.status.charAt(0).toUpperCase() +
                             applicant.status.slice(1)}
                         </Badge>

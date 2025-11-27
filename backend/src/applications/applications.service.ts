@@ -86,6 +86,7 @@ export class ApplicationsService {
       data: applications.map((app) => ({
         applicationId: app._id,
         appliedAt: app.appliedAt,
+        approved: app.approved,
         job: app.job,
       })),
     };

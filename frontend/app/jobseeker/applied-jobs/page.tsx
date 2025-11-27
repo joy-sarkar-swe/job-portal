@@ -1,5 +1,6 @@
 "use client";
 
+import { getMyApplicationsAction } from "@/actions/job/my-applied-jobs";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,114 +10,50 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 interface AppliedJob {
-  id: number;
-  jobId: number;
+  applicationId: string;
   title: string;
   company: string;
   location: string;
   jobType: string;
   dateApplied: string;
-  status: "pending" | "reviewed" | "rejected" | "accepted";
+  status: string;
+  _id: string;
 }
-
-const getStatusColor = (
-  status: string
-): "default" | "secondary" | "destructive" | "outline" => {
-  switch (status) {
-    case "pending":
-      return "secondary";
-    case "reviewed":
-      return "default";
-    case "accepted":
-      return "default";
-    case "rejected":
-      return "destructive";
-    default:
-      return "secondary";
-  }
-};
-
-const getJobTypeBadgeVariant = (
-  jobType: string
-): "default" | "secondary" | "outline" | "destructive" => {
-  switch (jobType) {
-    case "Full-time":
-      return "default";
-    case "Remote":
-      return "secondary";
-    case "Part-time":
-      return "outline";
-    case "Contract":
-      return "destructive";
-    default:
-      return "default";
-  }
-};
 
 export default function AppliedJobsPage() {
   const [appliedJobs, setAppliedJobs] = useState<AppliedJob[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate API call to fetch applied jobs
-    setTimeout(() => {
-      // Mock data - replace with actual API call
-      const mockAppliedJobs: AppliedJob[] = [
-        {
-          id: 1,
-          jobId: 2,
-          title: "Backend Engineer",
-          company: "StartUp Inc",
-          location: "San Francisco, CA",
-          jobType: "Remote",
-          dateApplied: "2025-11-20",
-          status: "pending",
-        },
-        {
-          id: 2,
-          jobId: 4,
-          title: "UI/UX Designer",
-          company: "Creative Agency",
-          location: "Los Angeles, CA",
-          jobType: "Part-time",
-          dateApplied: "2025-11-18",
-          status: "reviewed",
-        },
-        {
-          id: 3,
-          jobId: 6,
-          title: "Product Manager",
-          company: "Innovation Labs",
-          location: "Boston, MA",
-          jobType: "Full-time",
-          dateApplied: "2025-11-15",
-          status: "pending",
-        },
-        {
-          id: 4,
-          jobId: 8,
-          title: "Mobile Developer",
-          company: "Mobile First",
-          location: "New York, NY",
-          jobType: "Full-time",
-          dateApplied: "2025-11-10",
-          status: "reviewed",
-        },
-        {
-          id: 5,
-          jobId: 10,
-          title: "QA Engineer",
-          company: "Quality Works",
-          location: "Austin, TX",
-          jobType: "Contract",
-          dateApplied: "2025-11-05",
-          status: "pending",
-        },
-      ];
+    const fetchAppliedJobs = async () => {
+      setLoading(true);
 
-      setAppliedJobs(mockAppliedJobs);
+      // Replace with actual token logic
+      const token = localStorage.getItem("token") || "";
+
+      const res = await getMyApplicationsAction({ page: 1, limit: 50 });
+
+      if (res.success && res.data) {
+        const mappedJobs: AppliedJob[] = res.data.map((app) => ({
+          applicationId: app.applicationId,
+          title: app.job.title,
+          company: app.job.company,
+          location: app.job.location,
+          jobType: app.job.jobType,
+          dateApplied: app.appliedAt,
+          status: app.approved ? "Short Listed" : "Pending",
+          _id: app.job._id,
+        }));
+
+        setAppliedJobs(mappedJobs);
+      } else {
+        setAppliedJobs([]);
+      }
+
       setLoading(false);
-    }, 500);
+    };
+
+    fetchAppliedJobs();
   }, []);
 
   const formatDate = (dateString: string) => {
@@ -185,17 +122,15 @@ export default function AppliedJobsPage() {
             <div className='grid grid-cols-1 gap-4'>
               {appliedJobs.map((job) => (
                 <Card
-                  key={job.id}
+                  key={job.applicationId}
                   className='hover:shadow-lg transition-shadow'>
                   <CardContent className='p-6'>
                     <div className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4'>
                       {/* Job Info */}
                       <div className='flex-1 space-y-3'>
                         <div className='flex items-start gap-3 flex-wrap'>
-                          <Badge variant={getJobTypeBadgeVariant(job.jobType)}>
-                            {job.jobType}
-                          </Badge>
-                          <Badge variant={getStatusColor(job.status)}>
+                          <Badge variant='default'>{job.jobType}</Badge>
+                          <Badge variant='default'>
                             {job.status.charAt(0).toUpperCase() +
                               job.status.slice(1)}
                           </Badge>
@@ -229,7 +164,7 @@ export default function AppliedJobsPage() {
                           variant='outline'
                           asChild
                           className='flex-1 lg:flex-initial'>
-                          <Link href={`/jobs/${job.jobId}`}>
+                          <Link href={`/jobs/${job._id}`}>
                             <ExternalLink className='h-4 w-4 mr-2' />
                             View Job
                           </Link>

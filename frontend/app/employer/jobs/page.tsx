@@ -35,21 +35,6 @@ function useDebounce(value: string, delay = 400) {
   return debounced;
 }
 
-const getJobTypeBadgeVariant = (
-  jobType: string
-): "default" | "secondary" | "outline" | "destructive" => {
-  switch (jobType.toLowerCase()) {
-    case "full-time":
-      return "default";
-    case "remote":
-      return "secondary";
-    case "part-time":
-      return "outline";
-    default:
-      return "default";
-  }
-};
-
 export default function EmployerJobsPage() {
   const [jobs, setJobs] = useState<EmployerJob[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,7 +47,7 @@ export default function EmployerJobsPage() {
     "full-time" | "part-time" | "remote" | ""
   >("");
 
-  // 🔥 Debounced values
+  // Debounced values
   const debouncedSearch = useDebounce(searchJob, 400);
   const debouncedJobType = useDebounce(jobTypeFilter, 300);
 
@@ -102,7 +87,7 @@ export default function EmployerJobsPage() {
     }
   };
 
-  // 🔥 Auto fetch on search or type filter change
+  // Auto fetch on search or type filter change
   useEffect(() => {
     fetchJobs();
   }, [debouncedSearch, debouncedJobType]);
@@ -224,9 +209,7 @@ export default function EmployerJobsPage() {
                       {/* Info */}
                       <div className='flex-1 space-y-3'>
                         <div className='flex items-start gap-3 flex-wrap'>
-                          <Badge variant={getJobTypeBadgeVariant(job.jobType)}>
-                            {job.jobType}
-                          </Badge>
+                          <Badge variant='default'>{job.jobType}</Badge>
                           <Badge
                             variant={
                               job.status === "active" ? "default" : "secondary"

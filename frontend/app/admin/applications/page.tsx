@@ -123,22 +123,6 @@ export default function AllApplicationsPage() {
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusColor = (
-    status: string
-  ): "secondary" | "default" | "destructive" => {
-    switch (status) {
-      case "pending":
-        return "secondary";
-      case "reviewed":
-      case "accepted":
-        return "default";
-      case "rejected":
-        return "destructive";
-      default:
-        return "secondary";
-    }
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -222,9 +206,7 @@ export default function AllApplicationsPage() {
                     <div className='flex items-start justify-between gap-4'>
                       <div className='flex-1'>
                         <div className='flex items-center gap-2 mb-3'>
-                          <Badge variant={getStatusColor(app.status)}>
-                            {app.status}
-                          </Badge>
+                          <Badge variant='secondary'>{app.status}</Badge>
                         </div>
                         <h3 className='text-xl font-semibold text-gray-900 dark:text-white mb-2'>
                           {app.jobTitle}

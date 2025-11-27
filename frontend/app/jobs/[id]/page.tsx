@@ -1,19 +1,14 @@
 "use client";
 
-import { Job } from "@/components/JobCard";
+import { applyJobAction } from "@/actions/job/apply-job";
+import { getJobByIdAction, JobDetails } from "@/actions/job/get-job-by-id";
+import { getProfileAction } from "@/actions/profile/get-profile";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  generateMockJob,
-  getCurrentUser,
-  hasUserApplied,
-  markJobAsApplied,
-} from "@/lib/mockData";
-import {
   ArrowLeft,
-  Briefcase,
   Building2,
   CheckCircle,
   DollarSign,
@@ -23,77 +18,81 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-const getJobTypeBadgeVariant = (
-  jobType: string
-): "default" | "secondary" | "outline" | "destructive" => {
-  switch (jobType) {
-    case "Full-time":
-      return "default";
-    case "Remote":
-      return "secondary";
-    case "Part-time":
-      return "outline";
-    case "Contract":
-      return "destructive";
-    default:
-      return "default";
-  }
-};
-
 export default function JobDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const jobId = Number(params.id);
+  const jobId = Array.isArray(params?.id) ? params.id[0] : params?.id;
 
-  const [job, setJob] = useState<Job | null>(null);
+  const [user, setUser] = useState<any | null>(null);
+  const [job, setJob] = useState<JobDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showLoginAlert, setShowLoginAlert] = useState(false); // <-- new state
 
-  const currentUser = getCurrentUser();
-
+  // Fetch job details and user profile
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      if (jobId < 1 || jobId > 50) {
+    const fetchJob = async () => {
+      if (!jobId) {
         setJob(null);
         setLoading(false);
         return;
       }
 
-      const fetchedJob = generateMockJob(jobId);
-      setJob(fetchedJob);
-      setLoading(false);
-
-      if (fetchedJob && currentUser.isLoggedIn) {
-        setHasApplied(hasUserApplied(currentUser.id, jobId));
+      setLoading(true);
+      const res = await getJobByIdAction(jobId);
+      if (res.success && res.job) {
+        setJob(res.job);
+      } else {
+        setJob(null);
       }
-    }, 500);
-  }, [jobId, currentUser.id, currentUser.isLoggedIn]);
+      setLoading(false);
+    };
+
+    const fetchUser = async () => {
+      try {
+        const res = await getProfileAction();
+        if (res.success && res.user) {
+          setUser(res.user);
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+          setUser(null);
+        }
+      } catch (err) {
+        setIsAuthenticated(false);
+        setUser(null);
+      }
+    };
+
+    fetchUser();
+    fetchJob();
+  }, [jobId]);
 
   const handleApply = async () => {
-    if (!currentUser.isLoggedIn) {
-      router.push("/login");
-      return;
-    }
-
-    if (currentUser.role !== "jobseeker") {
+    if (!isAuthenticated) {
+      setShowLoginAlert(true);
+      setTimeout(() => setShowLoginAlert(false), 4000);
       return;
     }
 
     setApplying(true);
 
-    // Simulate API call
-    setTimeout(() => {
-      markJobAsApplied(jobId);
-      setHasApplied(true);
-      setApplying(false);
-      setShowSuccess(true);
+    const res = await applyJobAction(jobId!);
 
-      // Hide success message after 5 seconds
+    console.log(res);
+
+    setApplying(false);
+
+    if (res.success) {
+      setHasApplied(true);
+      setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 5000);
-    }, 1000);
+    } else {
+      alert(res.message);
+    }
   };
 
   if (loading) {
@@ -131,8 +130,7 @@ export default function JobDetailsPage() {
     );
   }
 
-  const canApply =
-    currentUser.isLoggedIn && currentUser.role === "jobseeker" && !hasApplied;
+  const canApply = !hasApplied;
 
   return (
     <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
@@ -150,6 +148,18 @@ export default function JobDetailsPage() {
 
       {/* Main Content */}
       <main className='max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+        {/* Login Alert */}
+        {showLoginAlert && (
+          <Alert className='mb-6 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'>
+            <AlertDescription className='text-yellow-800 dark:text-yellow-200'>
+              You must be logged in to apply for this job.{" "}
+              <Link href='/login' className='underline'>
+                Login
+              </Link>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Success Alert */}
         {showSuccess && (
           <Alert className='mb-6 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'>
@@ -167,9 +177,7 @@ export default function JobDetailsPage() {
             <div className='flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4'>
               <div className='flex-1'>
                 <div className='flex items-center gap-2 mb-3'>
-                  <Badge variant={getJobTypeBadgeVariant(job.jobType)}>
-                    {job.jobType}
-                  </Badge>
+                  <Badge variant='default'>{job.jobType.toUpperCase()}</Badge>
                 </div>
                 <CardTitle className='text-3xl mb-4'>{job.title}</CardTitle>
                 <div className='space-y-2'>
@@ -194,18 +202,7 @@ export default function JobDetailsPage() {
 
               {/* Apply Button */}
               <div className='sm:min-w-[200px]'>
-                {!currentUser.isLoggedIn ? (
-                  <Button className='w-full' size='lg' asChild>
-                    <Link href='/login'>Sign In to Apply</Link>
-                  </Button>
-                ) : currentUser.role !== "jobseeker" ? (
-                  <Alert>
-                    <Briefcase className='h-4 w-4' />
-                    <AlertDescription>
-                      Only job seekers can apply for jobs.
-                    </AlertDescription>
-                  </Alert>
-                ) : hasApplied ? (
+                {hasApplied ? (
                   <Button className='w-full' size='lg' disabled>
                     <CheckCircle className='h-4 w-4 mr-2' />
                     Already Applied

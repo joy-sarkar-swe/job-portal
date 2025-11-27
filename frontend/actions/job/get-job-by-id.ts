@@ -1,7 +1,5 @@
 "use server";
 
-import { cookies } from "next/headers";
-
 interface Employer {
   _id: string;
   name: string;
@@ -30,18 +28,8 @@ export async function getJobByIdAction(
   jobId: string
 ): Promise<GetJobByIdResponse> {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get("accessToken")?.value;
-
-    if (!token) {
-      return { statusCode: 401, success: false, message: "Not authenticated" };
-    }
-
     const res = await fetch(`${process.env.NEXT_BACKEND_URI}/jobs/${jobId}`, {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
       cache: "no-store",
     });
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { getProfileAction } from "@/actions/profile/get-profile";
+import { updateProfileAction } from "@/actions/profile/update-profile";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -7,8 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { UpdateProfileDto } from "@/lib/validations/auth";
 import { CheckCircle, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface ProfileData {
   name: string;
@@ -19,17 +22,40 @@ interface ProfileData {
 }
 
 export default function EditProfilePage() {
-  const [saving, setSaving] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-
-  // Mock initial data - replace with actual data from API/localStorage
   const [formData, setFormData] = useState<ProfileData>({
-    name: "John Doe",
-    email: "john@example.com",
+    name: "",
+    email: "",
     bio: "",
     skills: "",
     resumeUrl: "",
   });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch profile on mount
+  useEffect(() => {
+    async function fetchProfile() {
+      setLoading(true);
+      const res = await getProfileAction();
+      if (res.success && res.user) {
+        setFormData({
+          name: res.user.name,
+          email: res.user.email,
+          bio: res.user.bio || "",
+          skills: res.user.skills?.join(", ") || "",
+          resumeUrl: res.user.resumeUrl || "",
+        });
+        setError(null);
+      } else {
+        setError(res.message);
+      }
+      setLoading(false);
+    }
+
+    fetchProfile();
+  }, []);
 
   const handleInputChange = (field: keyof ProfileData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -40,23 +66,45 @@ export default function EditProfilePage() {
     setSaving(true);
     setShowSuccess(false);
 
-    // Simulate API call
-    setTimeout(() => {
-      // TODO: Save to API/localStorage
-      console.log("Saving profile:", formData);
+    const payload: UpdateProfileDto = {
+      bio: formData.bio,
+      skills: formData.skills.split(",").map((s) => s.trim()),
+      resumeUrl: formData.resumeUrl,
+    };
 
-      setSaving(false);
+    const res = await updateProfileAction(payload);
+
+    if (res.success && res.user) {
+      setFormData({
+        name: res.user.name,
+        email: res.user.email,
+        bio: res.user.bio || "",
+        skills: res.user.skills?.join(", ") || "",
+        resumeUrl: res.user.resumeUrl || "",
+      });
       setShowSuccess(true);
-
-      // Hide success message after 3 seconds
+      setError(null);
       setTimeout(() => setShowSuccess(false), 3000);
-    }, 1000);
+    } else {
+      setError(res.message);
+    }
+
+    setSaving(false);
   };
+
+  if (loading) {
+    return (
+      <DashboardLayout userRole='jobseeker'>
+        <div className='flex justify-center items-center py-24'>
+          <Loader2 className='h-6 w-6 animate-spin text-gray-600 dark:text-gray-400' />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout userRole='jobseeker'>
       <div className='space-y-6'>
-        {/* Header */}
         <div>
           <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
             Edit Profile
@@ -66,7 +114,14 @@ export default function EditProfilePage() {
           </p>
         </div>
 
-        {/* Success Alert */}
+        {error && (
+          <Alert className='bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'>
+            <AlertDescription className='text-red-800 dark:text-red-200'>
+              {error}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {showSuccess && (
           <Alert className='bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'>
             <CheckCircle className='h-4 w-4 text-green-600 dark:text-green-400' />
@@ -76,7 +131,6 @@ export default function EditProfilePage() {
           </Alert>
         )}
 
-        {/* Form */}
         <form onSubmit={handleSubmit}>
           <Card>
             <CardHeader>
@@ -90,9 +144,7 @@ export default function EditProfilePage() {
                   id='name'
                   type='text'
                   value={formData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
-                  required
-                  disabled={saving}
+                  disabled
                   placeholder='Enter your full name'
                 />
               </div>
@@ -104,9 +156,7 @@ export default function EditProfilePage() {
                   id='email'
                   type='email'
                   value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  required
-                  disabled={saving}
+                  disabled
                   placeholder='your.email@example.com'
                 />
               </div>
@@ -117,11 +167,9 @@ export default function EditProfilePage() {
                 <Textarea
                   id='bio'
                   value={formData.bio}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                    handleInputChange("bio", e.target.value)
-                  }
+                  onChange={(e) => handleInputChange("bio", e.target.value)}
                   disabled={saving}
-                  placeholder="Tell employers about yourself, your experience, and what you're looking for..."
+                  placeholder='Tell employers about yourself...'
                   rows={6}
                   className='resize-none'
                 />
@@ -179,22 +227,6 @@ export default function EditProfilePage() {
                   ) : (
                     "Save Changes"
                   )}
-                </Button>
-                <Button
-                  type='button'
-                  variant='outline'
-                  disabled={saving}
-                  onClick={() => {
-                    // Reset to initial values
-                    setFormData({
-                      name: "John Doe",
-                      email: "john@example.com",
-                      bio: "",
-                      skills: "",
-                      resumeUrl: "",
-                    });
-                  }}>
-                  Cancel
                 </Button>
               </div>
             </CardContent>

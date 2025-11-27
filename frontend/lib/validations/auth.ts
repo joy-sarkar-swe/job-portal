@@ -52,6 +52,13 @@ export const registerSchema = z
     path: ["confirmPassword"],
   });
 
+export const updateProfileSchema = z.object({
+  bio: z.string().max(500).optional(),
+  skills: z.array(z.string()).optional(),
+  resumeUrl: z.string().url().optional(),
+});
+
 // TypeScript types inferred from schemas
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
+export type UpdateProfileDto = z.infer<typeof updateProfileSchema>;

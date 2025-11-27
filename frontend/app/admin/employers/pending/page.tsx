@@ -1,192 +1,245 @@
 "use client";
 
+import { approveEmployer } from "@/actions/admin/approve-employer";
+import { getPendingEmployers } from "@/actions/admin/get-pending-employers";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle, Loader2, Mail, User } from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-interface PendingEmployer {
-  id: number;
-  name: string;
-  email: string;
-  company: string;
-  submittedAt: string;
-}
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { toast } from "sonner";
+
+import { toggleBlockUser } from "@/actions/admin/toggle-block-user";
+import { CheckCircle, Loader2, Mail, Search, User } from "lucide-react";
 
 export default function PendingEmployersPage() {
-  const [pendingEmployers, setPendingEmployers] = useState<PendingEmployer[]>([
-    {
-      id: 1,
-      name: "John Smith",
-      email: "john@techcorp.com",
-      company: "Tech Corp",
-      submittedAt: "2025-11-20",
-    },
-    {
-      id: 2,
-      name: "Sarah Johnson",
-      email: "sarah@startup.io",
-      company: "StartUp Inc",
-      submittedAt: "2025-11-22",
-    },
-    {
-      id: 3,
-      name: "Michael Chen",
-      email: "michael@digital.com",
-      company: "Digital Solutions",
-      submittedAt: "2025-11-24",
-    },
-    {
-      id: 4,
-      name: "Emily Davis",
-      email: "emily@creative.agency",
-      company: "Creative Agency",
-      submittedAt: "2025-11-25",
-    },
-    {
-      id: 5,
-      name: "David Wilson",
-      email: "david@cloudsys.com",
-      company: "Cloud Systems",
-      submittedAt: "2025-11-26",
-    },
-  ]);
+  const [data, setData] = useState<any[]>([]);
+  const [pagination, setPagination] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
-  const [approvingId, setApprovingId] = useState<number | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [searchText, setSearchText] = useState("");
 
-  const handleApprove = async (id: number, name: string) => {
-    setApprovingId(id);
-    setSuccessMessage(null);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [toggleLoading, setToggleLoading] = useState<string | null>(null);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+  // Fetch pending employers
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await getPendingEmployers({
+        page,
+        limit: 10,
+        search: search.trim(),
+      });
 
-    setPendingEmployers((prev) => prev.filter((emp) => emp.id !== id));
-    setApprovingId(null);
-    setSuccessMessage(`${name} has been approved successfully!`);
-
-    // Hide success message after 3 seconds
-    setTimeout(() => setSuccessMessage(null), 3000);
+      if (res.success) {
+        setData(res.pendingEmployers || []);
+        setPagination(res.pagination);
+      } else {
+        toast.error(res.message || "Failed to fetch employers");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong while fetching employers");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+  // Fetch data when page or search changes
+  useEffect(() => {
+    const t = setTimeout(() => {
+      fetchData();
+    }, 500);
+
+    return () => clearTimeout(t);
+  }, [page, search]);
+
+  // Debounce search input
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      setPage(1);
+      setSearch(searchText);
+    }, 500);
+
+    return () => clearTimeout(delay);
+  }, [searchText]);
+
+  const handleApprove = async (id: string, name: string) => {
+    setApprovingId(id);
+    try {
+      const res = await approveEmployer(id);
+
+      if (res.success) {
+        toast.success(`${name} approved successfully!`);
+        fetchData();
+      } else {
+        toast.error(res.message || "Failed to approve employer");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong while approving employer");
+    } finally {
+      setApprovingId(null);
+    }
+  };
+
+  const handleBlockToggle = async (emp: any) => {
+    setToggleLoading(emp.id);
+    try {
+      const res = await toggleBlockUser(emp.id);
+
+      if (res.success) {
+        toast.success(
+          `${emp.name} has been ${
+            res.employer?.isBlocked ? "blocked" : "unblocked"
+          }`
+        );
+        fetchData();
+      } else {
+        toast.error(res.message || "Failed to toggle block status");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong while toggling block status");
+    } finally {
+      setToggleLoading(null);
+    }
   };
 
   return (
     <DashboardLayout userRole='admin'>
       <div className='space-y-6'>
-        {/* Header */}
-        <div className='flex items-center justify-between'>
-          <div>
-            <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
-              Pending Employers
-            </h1>
-            <p className='text-gray-500 dark:text-gray-400 mt-2'>
-              Review and approve employer registrations
-            </p>
+        <h1 className='text-3xl font-bold'>Pending Employers</h1>
+
+        {/* SEARCH BAR & TOTAL COUNT */}
+        <div className='flex flex-col md:flex-row md:items-center md:justify-between gap-4'>
+          {/* Search Field */}
+          <div className='relative w-full md:w-80'>
+            <Search className='absolute left-3 top-2.5 h-4 w-4 text-gray-500' />
+            <input
+              type='text'
+              placeholder='Search employers...'
+              className='w-full pl-10 pr-3 py-2 border rounded-md'
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+            />
           </div>
-          <Link href='/admin'>
-            <Button variant='outline'>← Back to Dashboard</Button>
-          </Link>
+
+          {/* Total count */}
+          <p className='text-gray-600 text-sm'>
+            Total: {pagination?.totalItems || 0} pending employers
+          </p>
         </div>
 
-        {/* Success Message */}
-        {successMessage && (
-          <Alert className='bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'>
-            <CheckCircle className='h-4 w-4 text-green-600' />
-            <AlertDescription className='text-green-800 dark:text-green-200'>
-              {successMessage}
-            </AlertDescription>
-          </Alert>
-        )}
+        {/* TABLE */}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Is Blocked</TableHead>
+              <TableHead className='text-right'>Action</TableHead>
+            </TableRow>
+          </TableHeader>
 
-        {/* Count */}
-        <div className='text-sm text-gray-500 dark:text-gray-400'>
-          {pendingEmployers.length} pending approval
-          {pendingEmployers.length !== 1 ? "s" : ""}
-        </div>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={4} className='text-center py-10'>
+                  <Loader2 className='h-6 w-6 animate-spin mx-auto' />
+                  Loading...
+                </TableCell>
+              </TableRow>
+            ) : data.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className='text-center py-10'>
+                  No pending employers
+                </TableCell>
+              </TableRow>
+            ) : (
+              data.map((emp) => (
+                <TableRow key={emp.id}>
+                  <TableCell className='font-medium flex items-center gap-2'>
+                    <User className='h-4 w-4 text-blue-600' />
+                    {emp.name}
+                  </TableCell>
 
-        {/* Employers List */}
-        {pendingEmployers.length === 0 ? (
-          <Card>
-            <CardContent className='flex flex-col items-center justify-center py-12'>
-              <CheckCircle className='h-12 w-12 text-green-500 mb-4' />
-              <h3 className='text-lg font-semibold text-gray-900 dark:text-white mb-2'>
-                All Caught Up!
-              </h3>
-              <p className='text-gray-500 dark:text-gray-400 text-center'>
-                There are no pending employer approvals at the moment.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className='space-y-4'>
-            {pendingEmployers.map((employer) => (
-              <Card key={employer.id}>
-                <CardContent className='p-6'>
-                  <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
-                    <div className='flex-1 space-y-3'>
-                      <div className='flex items-start gap-3'>
-                        <div className='bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg'>
-                          <User className='h-5 w-5 text-blue-600' />
-                        </div>
-                        <div className='flex-1'>
-                          <h3 className='text-lg font-semibold text-gray-900 dark:text-white'>
-                            {employer.name}
-                          </h3>
-                          <p className='text-sm text-gray-600 dark:text-gray-400 mt-1'>
-                            {employer.company}
-                          </p>
-                        </div>
-                      </div>
+                  <TableCell>
+                    <a
+                      href={`mailto:${emp.email}`}
+                      className='flex items-center gap-2 hover:text-blue-600'>
+                      <Mail className='h-4 w-4' />
+                      {emp.email}
+                    </a>
+                  </TableCell>
 
-                      <div className='flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400'>
-                        <Mail className='h-4 w-4' />
-                        <a
-                          href={`mailto:${employer.email}`}
-                          className='hover:text-blue-600 dark:hover:text-blue-400'>
-                          {employer.email}
-                        </a>
-                      </div>
+                  <TableCell className='text-center'>
+                    <Switch
+                      checked={emp.isBlocked}
+                      disabled={toggleLoading === emp.id}
+                      onCheckedChange={() => handleBlockToggle(emp)}
+                    />
+                  </TableCell>
 
-                      <p className='text-xs text-gray-500 dark:text-gray-400'>
-                        Submitted on {formatDate(employer.submittedAt)}
-                      </p>
-                    </div>
+                  <TableCell className='text-right'>
+                    <Button
+                      className='cursor-pointer'
+                      disabled={
+                        emp.isEmployerApproved || approvingId === emp.id
+                      }
+                      onClick={() => handleApprove(emp.id, emp.name)}>
+                      {approvingId === emp.id ? (
+                        <>
+                          <Loader2 className='h-4 w-4 mr-2 animate-spin' />
+                          Approving...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className='h-4 w-4 mr-2' />
+                          Click To Approve
+                        </>
+                      )}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
 
-                    <div className='sm:min-w-32'>
-                      <Button
-                        onClick={() =>
-                          handleApprove(employer.id, employer.name)
-                        }
-                        disabled={approvingId === employer.id}
-                        className='w-full sm:w-auto'>
-                        {approvingId === employer.id ? (
-                          <>
-                            <Loader2 className='h-4 w-4 mr-2 animate-spin' />
-                            Approving...
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle className='h-4 w-4 mr-2' />
-                            Approve
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+        {/* PAGINATION */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className='flex items-center justify-between mt-4'>
+            <Button
+              variant='outline'
+              disabled={page <= 1 || loading}
+              onClick={() => setPage((p) => p - 1)}>
+              Previous
+            </Button>
+
+            <p>
+              Page {pagination.currentPage} of {pagination.totalPages} — Showing{" "}
+              <strong>{data.length}</strong> out of{" "}
+              <strong>{pagination.totalItems}</strong>
+            </p>
+
+            <Button
+              variant='outline'
+              disabled={page >= pagination.totalPages || loading}
+              onClick={() => setPage((p) => p + 1)}>
+              Next
+            </Button>
           </div>
         )}
       </div>

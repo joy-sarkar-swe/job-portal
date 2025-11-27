@@ -36,8 +36,8 @@ export class AdminController {
   }
 
   @Get('employers/pending')
-  async getPendingEmployers() {
-    return this.adminService.getPendingEmployers();
+  async getPendingEmployers(@Query() query: GetUsersQueryDto) {
+    return this.adminService.getPendingEmployers(query);
   }
 
   @Patch('employers/approve/:id')

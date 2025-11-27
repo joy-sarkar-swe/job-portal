@@ -47,18 +47,47 @@ export class AdminService {
     };
   }
 
-  async getPendingEmployers() {
+  async getPendingEmployers(query: GetUsersQueryDto) {
+    const { page = 1, limit = 10, search = '' } = query;
+
+    const skip = (page - 1) * limit;
+
+    // Search condition (optional)
+    const searchCondition = search
+      ? {
+          $or: [
+            { name: { $regex: search, $options: 'i' } },
+            { email: { $regex: search, $options: 'i' } },
+          ],
+        }
+      : {};
+
+    const baseFilter = {
+      role: UserRole.EMPLOYER,
+      isEmployerApproved: false,
+      ...searchCondition,
+    };
+
+    // Count total for pagination
+    const total = await this.userModel.countDocuments(baseFilter);
+
+    // Fetch paginated results
     const pendingEmployers = await this.userModel
-      .find({
-        role: UserRole.EMPLOYER,
-        isEmployerApproved: false,
-      })
+      .find(baseFilter)
       .select('-password')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     return {
       statusCode: 200,
       message: 'Pending employers retrieved successfully',
+      pagination: {
+        total,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page,
+        limit,
+      },
       pendingEmployers: pendingEmployers.map((employer) => ({
         id: employer._id,
         name: employer.name,

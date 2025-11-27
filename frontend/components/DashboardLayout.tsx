@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useState } from "react";
+import { Toaster } from "sonner";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -130,6 +131,7 @@ export function DashboardLayout({
 
   return (
     <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
+      <Toaster />
       {/* Mobile menu button */}
       <div className='lg:hidden fixed top-4 left-4 z-50'>
         <Button

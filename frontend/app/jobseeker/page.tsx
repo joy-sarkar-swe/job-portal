@@ -13,7 +13,7 @@ export default function JobSeekerDashboard() {
         {/* Welcome Section */}
         <div>
           <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
-            Welcome back, {user.name || "Job Seeker"}!
+            Welcome back, Job Seeker!
           </h1>
           <p className='text-gray-600 dark:text-gray-400 mt-2'>
             Here&apos;s your job search overview

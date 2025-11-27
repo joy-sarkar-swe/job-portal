@@ -18,7 +18,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 interface EmployerJob extends Job {
-  applicantsCount: number;
   status: "active" | "closed";
   createdAt: string;
 }
@@ -72,7 +71,6 @@ export default function EmployerJobsPage() {
 
       const mappedJobs: EmployerJob[] = (res.jobs || []).map((job: Job) => ({
         ...job,
-        applicantsCount: (job as any).applicantsCount || 0,
         status: (job as any).status || "active",
         createdAt: (job as any).createdAt || new Date().toISOString(),
       }));
@@ -237,10 +235,6 @@ export default function EmployerJobsPage() {
                               <span>{job.salaryRange}</span>
                             </div>
                           )}
-                          <div className='flex items-center gap-2'>
-                            <Users className='h-4 w-4' />
-                            <span>{job.applicantsCount} applicants</span>
-                          </div>
                         </div>
                       </div>
 
@@ -253,7 +247,7 @@ export default function EmployerJobsPage() {
                           className='flex-1 lg:flex-initial lg:w-full'>
                           <Link href={`/employer/jobs/${job._id}/applicants`}>
                             <Users className='h-4 w-4 mr-2' />
-                            Applicants ({job.applicantsCount})
+                            See Applicants
                           </Link>
                         </Button>
                         <Button

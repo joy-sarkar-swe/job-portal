@@ -11,12 +11,6 @@ import { EmployerService } from './employer.service';
 export class EmployerController {
   constructor(private readonly employerService: EmployerService) {}
 
-  @Get('overview')
-  @Roles(UserRole.EMPLOYER)
-  async getOverview(@GetUser() user: any) {
-    return this.employerService.getOverview(user.userId);
-  }
-
   @Get('status')
   @Roles(UserRole.EMPLOYER)
   async getStatus(@GetUser() user: any) {

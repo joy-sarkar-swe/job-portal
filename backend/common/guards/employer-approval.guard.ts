@@ -20,7 +20,7 @@ export class EmployerApprovalGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated');
     }
 
-    // Fetch the full user from DB to get latest data
+    // Fetch the full user from DB
     const dbUser = await this.userModel.findById(user.userId);
 
     if (!dbUser) {

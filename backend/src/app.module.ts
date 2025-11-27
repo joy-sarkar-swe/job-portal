@@ -7,7 +7,6 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ApplicationsModule } from './applications/applications.module';
 import { AuthModule } from './auth/auth.module';
-import { EmployerModule } from './employer/employer.module';
 import { JobsModule } from './jobs/jobs.module';
 import { User, UserSchema } from './schemas/user.schema';
 import { UserModule } from './user/user.module';
@@ -20,7 +19,6 @@ import { UserModule } from './user/user.module';
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     AuthModule,
     UserModule,
-    EmployerModule,
     JobsModule,
     ApplicationsModule,
     AdminModule,

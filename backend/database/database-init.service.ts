@@ -46,11 +46,11 @@ export class DatabaseInitService implements OnModuleInit {
 
       await admin.save();
 
-      this.logger.log('✅ Default admin user created successfully!');
-      this.logger.log(`📧 Email: ${defaultAdminEmail}`);
-      this.logger.log(`🔑 Password: ${defaultAdminPassword}`);
-      this.logger.warn(
-        '⚠️  Please change the default admin password after first login!',
+      console.log('Default admin user created successfully!');
+      console.log(`Email: ${defaultAdminEmail}`);
+      console.log(`Password: ${defaultAdminPassword}`);
+      console.log(
+        'Please change the default admin password after first login!',
       );
     } catch (error) {
       this.logger.error('Failed to create default admin user:', error.message);

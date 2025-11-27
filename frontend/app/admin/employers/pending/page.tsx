@@ -20,14 +20,22 @@ import { toast } from "sonner";
 import { toggleBlockUser } from "@/actions/admin/toggle-block-user";
 import { CheckCircle, Loader2, Mail, Search, User } from "lucide-react";
 
+interface Employer {
+  id: string;
+  name: string;
+  email: string;
+  isBlocked: boolean;
+  isEmployerApproved: boolean;
+}
+
 export default function PendingEmployersPage() {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<Employer[]>([]);
   const [pagination, setPagination] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
   const [searchText, setSearchText] = useState("");
+  const [search, setSearch] = useState("");
 
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [toggleLoading, setToggleLoading] = useState<string | null>(null);
@@ -61,7 +69,6 @@ export default function PendingEmployersPage() {
     const t = setTimeout(() => {
       fetchData();
     }, 500);
-
     return () => clearTimeout(t);
   }, [page, search]);
 
@@ -71,10 +78,10 @@ export default function PendingEmployersPage() {
       setPage(1);
       setSearch(searchText);
     }, 500);
-
     return () => clearTimeout(delay);
   }, [searchText]);
 
+  // Approve employer
   const handleApprove = async (id: string, name: string) => {
     setApprovingId(id);
     try {
@@ -82,7 +89,22 @@ export default function PendingEmployersPage() {
 
       if (res.success) {
         toast.success(`${name} approved successfully!`);
-        fetchData();
+
+        // Remove approved employer from state
+        setData((prev) => prev.filter((emp) => emp.id !== id));
+
+        // Update pagination total
+        setPagination((prev: any) => {
+          if (!prev) return prev;
+          const newTotal = prev.total - 1;
+          const newTotalPages = Math.ceil(newTotal / 10);
+          return {
+            ...prev,
+            total: newTotal,
+            totalPages: newTotalPages,
+            page: page > newTotalPages ? newTotalPages : page,
+          };
+        });
       } else {
         toast.error(res.message || "Failed to approve employer");
       }
@@ -94,18 +116,20 @@ export default function PendingEmployersPage() {
     }
   };
 
-  const handleBlockToggle = async (emp: any) => {
+  // Toggle block/unblock
+  const handleBlockToggle = async (emp: Employer) => {
     setToggleLoading(emp.id);
     try {
       const res = await toggleBlockUser(emp.id);
 
-      if (res.success) {
+      if (res.success && res.user) {
         toast.success(
-          `${emp.name} has been ${
-            res.user?.isBlocked ? "blocked" : "unblocked"
-          }`
+          `${emp.name} has been ${res.user.isBlocked ? "blocked" : "unblocked"}`
         );
-        fetchData();
+
+        setData((prev) =>
+          prev.map((u) => (u.id === res.user!.id ? res.user! : u))
+        );
       } else {
         toast.error(res.message || "Failed to toggle block status");
       }
@@ -230,9 +254,9 @@ export default function PendingEmployersPage() {
             </Button>
 
             <p>
-              Page {pagination.currentPage} of {pagination.totalPages} — Showing{" "}
+              Page {pagination.page} of {pagination.totalPages} — Showing{" "}
               <strong>{data.length}</strong> out of{" "}
-              <strong>{pagination.totalItems}</strong>
+              <strong>{pagination.total}</strong>
             </p>
 
             <Button

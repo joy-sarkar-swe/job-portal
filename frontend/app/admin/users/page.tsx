@@ -1,5 +1,6 @@
 "use client";
 
+import { approveEmployer } from "@/actions/admin/approve-employer"; // <- new
 import { getAllUsers } from "@/actions/admin/get-all-users";
 import { toggleBlockUser } from "@/actions/admin/toggle-block-user";
 import { DashboardLayout } from "@/components/DashboardLayout";
@@ -31,10 +32,6 @@ interface User {
   role: string;
   isBlocked: boolean;
   isEmployerApproved?: boolean;
-  skills?: string[];
-  bio?: string;
-  resumeUrl?: string;
-  createdAt?: string;
 }
 
 export default function AllUsersPage() {
@@ -42,6 +39,7 @@ export default function AllUsersPage() {
   const [pagination, setPagination] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [toggleLoading, setToggleLoading] = useState<string | null>(null);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
 
   const [page, setPage] = useState(1);
   const [searchText, setSearchText] = useState("");
@@ -115,6 +113,36 @@ export default function AllUsersPage() {
       toast.error("Something went wrong while toggling block status");
     } finally {
       setToggleLoading(null);
+    }
+  };
+
+  const handleApprove = async (id: string, name: string) => {
+    setApprovingId(id);
+    try {
+      const res = await approveEmployer(id);
+
+      if (res.success) {
+        toast.success(`${name} approved successfully!`);
+
+        // Remove approved employer from state
+        setUsers((prev) => prev.filter((u) => u.id !== id));
+
+        // Update pagination
+        if (pagination) {
+          setPagination((prev: any) => ({
+            ...prev,
+            total: prev.total - 1,
+            totalPages: Math.ceil((prev.total - 1) / 10),
+          }));
+        }
+      } else {
+        toast.error(res.message || "Failed to approve employer");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong while approving employer");
+    } finally {
+      setApprovingId(null);
     }
   };
 
@@ -247,7 +275,8 @@ export default function AllUsersPage() {
                       : "-"}
                   </TableCell>
 
-                  <TableCell className='text-right'>
+                  <TableCell className='text-right flex justify-end gap-2'>
+                    {/* Block Toggle */}
                     {user.role !== "admin" && (
                       <Button
                         onClick={() => handleBlockToggle(user)}
@@ -262,6 +291,23 @@ export default function AllUsersPage() {
                           "Unblock"
                         ) : (
                           "Block"
+                        )}
+                      </Button>
+                    )}
+
+                    {/* Approve button for employer */}
+                    {user.role === "employer" && !user.isEmployerApproved && (
+                      <Button
+                        onClick={() => handleApprove(user.id, user.name)}
+                        disabled={approvingId === user.id}
+                        variant='default'>
+                        {approvingId === user.id ? (
+                          <>
+                            <Loader2 className='h-4 w-4 mr-2 animate-spin' />
+                            Approving...
+                          </>
+                        ) : (
+                          "Approve"
                         )}
                       </Button>
                     )}

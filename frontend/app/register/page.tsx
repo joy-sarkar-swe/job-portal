@@ -1,5 +1,7 @@
 "use client";
 
+import { registerAction } from "@/actions/auth/register";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,29 +20,49 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AlertCircle, CheckCircle } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
+    confirmPassword: "",
     role: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
+    setSuccess(null);
 
-    // TODO: Implement registration logic
-    console.log("Registration data:", formData);
+    const result = await registerAction(
+      formData.name,
+      formData.email,
+      formData.password,
+      formData.confirmPassword,
+      formData.role as "jobseeker" | "employer"
+    );
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
+    setIsLoading(false);
+
+    if (!result.success) {
+      setError(result.message || "Registration failed");
+    } else {
+      setSuccess(result.message || "Registration successful!");
+      // Redirect to login after 2 seconds
+      setTimeout(() => {
+        router.push("/login");
+      }, 2000);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -60,6 +82,20 @@ export default function RegisterPage() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className='space-y-4'>
+            {error && (
+              <Alert variant='destructive'>
+                <AlertCircle className='h-4 w-4' />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            {success && (
+              <Alert className='bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'>
+                <CheckCircle className='h-4 w-4 text-green-600' />
+                <AlertDescription className='text-green-800 dark:text-green-200'>
+                  {success}
+                </AlertDescription>
+              </Alert>
+            )}
             <div className='space-y-2'>
               <Label htmlFor='name'>Full Name</Label>
               <Input
@@ -97,6 +133,25 @@ export default function RegisterPage() {
                 required
                 disabled={isLoading}
                 minLength={6}
+              />
+              <p className='text-xs text-muted-foreground'>
+                Must be at least 6 characters with uppercase, lowercase, and
+                number
+              </p>
+            </div>
+
+            <div className='space-y-2'>
+              <Label htmlFor='confirmPassword'>Confirm Password</Label>
+              <Input
+                id='confirmPassword'
+                type='password'
+                placeholder='••••••••'
+                value={formData.confirmPassword}
+                onChange={(e) =>
+                  handleInputChange("confirmPassword", e.target.value)
+                }
+                required
+                disabled={isLoading}
               />
             </div>
 

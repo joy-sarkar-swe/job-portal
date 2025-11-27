@@ -1,5 +1,6 @@
 "use client";
 
+import { loginAction } from "@/actions/auth/login";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,44 +13,55 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, CheckCircle } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [isBlocked, setIsBlocked] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [success, setSuccess] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setIsBlocked(false);
     setErrorMessage("");
+    setSuccess(null);
 
-    // TODO: Implement login logic
-    console.log("Login data:", formData);
+    const result = await loginAction(formData.email, formData.password);
 
-    // Simulate API call
+    setIsLoading(false);
+
+    if (!result.success) {
+      setErrorMessage(result.message || "Login failed");
+      return;
+    }
+
+    // Check if user is blocked (shouldn't happen if backend handles it, but double-check)
+    if (result.user?.isBlocked) {
+      setErrorMessage(
+        "Your account has been blocked. Please contact support for assistance."
+      );
+      return;
+    }
+
+    setSuccess(result.message || "Login successful!");
+
+    // Redirect based on user role after 1 second
     setTimeout(() => {
-      // Example: Check if user is blocked
-      // This should be replaced with actual API response
-      const userBlocked = false; // Set to true to test blocked message
-
-      if (userBlocked) {
-        setIsBlocked(true);
-        setErrorMessage(
-          "Your account has been blocked. Please contact support."
-        );
+      if (result.user?.role === "admin") {
+        router.push("/admin");
+      } else if (result.user?.role === "employer") {
+        router.push("/employer");
       } else {
-        // Handle successful login
-        console.log("Login successful");
+        router.push("/jobseeker");
       }
-      setIsLoading(false);
     }, 1000);
   };
 
@@ -70,10 +82,18 @@ export default function LoginPage() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className='space-y-4 mb-4'>
-            {isBlocked && (
+            {errorMessage && (
               <Alert variant='destructive'>
                 <AlertCircle className='h-4 w-4' />
                 <AlertDescription>{errorMessage}</AlertDescription>
+              </Alert>
+            )}
+            {success && (
+              <Alert className='bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'>
+                <CheckCircle className='h-4 w-4 text-green-600' />
+                <AlertDescription className='text-green-800 dark:text-green-200'>
+                  {success}
+                </AlertDescription>
               </Alert>
             )}
 
@@ -115,7 +135,7 @@ export default function LoginPage() {
             <Button
               type='submit'
               className='w-full cursor-pointer'
-              disabled={isLoading || isBlocked}>
+              disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign in"}
             </Button>
             <p className='text-sm text-center text-muted-foreground'>

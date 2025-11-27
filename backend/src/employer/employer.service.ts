@@ -20,7 +20,7 @@ export class EmployerService {
 
     return {
       statusCode: 200,
-      status: user.isEmployerApproved ? 'approved' : 'pending',
+      approvalStatus: user.isEmployerApproved ? true : false,
       message: user.isEmployerApproved
         ? 'Your employer account is approved'
         : 'Your employer account is pending approval',

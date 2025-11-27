@@ -76,9 +76,9 @@ export class AuthService {
     }
 
     // If employer, check if approved
-    if (user.role === UserRole.EMPLOYER && !user.isEmployerApproved) {
-      throw new UnauthorizedException('Your employer account is not approved');
-    }
+    // if (user.role === UserRole.EMPLOYER && !user.isEmployerApproved) {
+    //   throw new UnauthorizedException('Your employer account is not approved');
+    // }
 
     // Generate JWT token
     const payload = {

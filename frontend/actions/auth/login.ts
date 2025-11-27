@@ -55,15 +55,15 @@ export async function loginAction(
       };
     }
 
-    // Check if user is blocked
-    if (data.user?.isBlocked) {
-      return {
-        statusCode: 403,
-        success: false,
-        message:
-          "Your account has been blocked. Please contact support for assistance.",
-      };
-    }
+    // // Check if user is blocked
+    // if (data.user?.isBlocked) {
+    //   return {
+    //     statusCode: 403,
+    //     success: false,
+    //     message:
+    //       "Your account has been blocked. Please contact support for assistance.",
+    //   };
+    // }
 
     // Set access token in HTTP-only cookie
     if (data.accessToken) {

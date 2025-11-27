@@ -1,5 +1,6 @@
 "use client";
 
+import { logoutAction } from "@/actions/auth/logout";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -12,12 +13,13 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useState } from "react";
 
 interface DashboardLayoutProps {
   children: ReactNode;
   userRole: "jobseeker" | "employer" | "admin";
+  isEmployerApproved?: boolean;
 }
 
 const jobSeekerNav = [
@@ -84,15 +86,30 @@ const adminNav = [
   },
 ];
 
-export function DashboardLayout({ children, userRole }: DashboardLayoutProps) {
+export function DashboardLayout({
+  children,
+  userRole,
+  isEmployerApproved,
+}: DashboardLayoutProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Filter employer nav based on approval status
+  const getEmployerNav = () => {
+    if (isEmployerApproved === false) {
+      // Only show Dashboard if not approved
+      return employerNav.filter((item) => item.href === "/employer");
+    }
+    return employerNav;
+  };
 
   const navigation =
     userRole === "jobseeker"
       ? jobSeekerNav
       : userRole === "employer"
-      ? employerNav
+      ? getEmployerNav()
       : adminNav;
   const dashboardTitle =
     userRole === "jobseeker"
@@ -101,10 +118,14 @@ export function DashboardLayout({ children, userRole }: DashboardLayoutProps) {
       ? "Employer"
       : "Admin";
 
-  const handleLogout = () => {
-    // TODO: Implement logout logic
-    console.log("Logging out...");
-    window.location.href = "/";
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+
+    // Call server action to clear cookie
+    await logoutAction();
+
+    // Redirect to home page
+    router.push("/");
   };
 
   return (
@@ -181,9 +202,10 @@ export function DashboardLayout({ children, userRole }: DashboardLayoutProps) {
             <Button
               variant='ghost'
               className='w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20'
-              onClick={handleLogout}>
+              onClick={handleLogout}
+              disabled={isLoggingOut}>
               <LogOut className='h-5 w-5 mr-3' />
-              Logout
+              {isLoggingOut ? "Logging out..." : "Logout"}
             </Button>
             <div className='mt-4 pt-4 border-t border-gray-200 dark:border-gray-700'>
               <Button

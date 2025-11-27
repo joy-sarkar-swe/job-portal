@@ -88,7 +88,7 @@ export class AdminService {
         currentPage: page,
         limit,
       },
-      pendingEmployers: pendingEmployers.map((employer) => ({
+      users: pendingEmployers.map((employer) => ({
         id: employer._id,
         name: employer.name,
         email: employer.email,
@@ -100,15 +100,13 @@ export class AdminService {
   }
 
   async getAllUsers(query: GetUsersQueryDto) {
-    const { page = 1, limit = 10, search } = query;
+    const { page = 1, limit = 10, search, role, status } = query;
     const skip = (page - 1) * limit;
 
     const filter: any = {};
 
-    if (query.role) {
-      filter.role = query.role;
-    }
-
+    if (role) filter.role = role;
+    if (typeof status === 'boolean') filter.isBlocked = status;
     if (search) {
       filter.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -128,11 +126,13 @@ export class AdminService {
     return {
       statusCode: 200,
       message: 'Users retrieved successfully',
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-      data: users.map((user) => ({
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+      users: users.map((user) => ({
         id: user._id,
         name: user.name,
         email: user.email,
@@ -159,10 +159,12 @@ export class AdminService {
     return {
       statusCode: 200,
       message: 'Employer approved successfully',
-      employer: {
+      user: {
         id: employer._id,
         name: employer.name,
         email: employer.email,
+        role: employer.role,
+        isBlocked: employer.isBlocked,
         isEmployerApproved: employer.isEmployerApproved,
       },
     };
@@ -236,7 +238,9 @@ export class AdminService {
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
         isBlocked: user.isBlocked,
+        isEmployerApproved: user.isEmployerApproved,
       },
     };
   }

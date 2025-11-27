@@ -43,7 +43,7 @@ export default function PendingEmployersPage() {
       });
 
       if (res.success) {
-        setData(res.pendingEmployers || []);
+        setData(res.users || []);
         setPagination(res.pagination);
       } else {
         toast.error(res.message || "Failed to fetch employers");
@@ -102,7 +102,7 @@ export default function PendingEmployersPage() {
       if (res.success) {
         toast.success(
           `${emp.name} has been ${
-            res.employer?.isBlocked ? "blocked" : "unblocked"
+            res.user?.isBlocked ? "blocked" : "unblocked"
           }`
         );
         fetchData();
@@ -138,7 +138,7 @@ export default function PendingEmployersPage() {
 
           {/* Total count */}
           <p className='text-gray-600 text-sm'>
-            Total: {pagination?.totalItems || 0} pending employers
+            Total: {pagination?.total || 0} pending employers
           </p>
         </div>
 
@@ -186,6 +186,7 @@ export default function PendingEmployersPage() {
 
                   <TableCell className='text-center'>
                     <Switch
+                      className='cursor-pointer'
                       checked={emp.isBlocked}
                       disabled={toggleLoading === emp.id}
                       onCheckedChange={() => handleBlockToggle(emp)}

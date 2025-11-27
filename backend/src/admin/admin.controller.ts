@@ -27,6 +27,8 @@ export class AdminController {
 
   @Get('users')
   async getAllUsers(@Query() query: GetUsersQueryDto) {
+    console.log(query.status);
+
     return this.adminService.getAllUsers(query);
   }
 

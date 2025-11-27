@@ -1,9 +1,9 @@
 "use client";
 
+import { getAllUsers } from "@/actions/admin/get-all-users";
+import { toggleBlockUser } from "@/actions/admin/toggle-block-user";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -12,277 +12,288 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Mail, Search, Shield, User, Users } from "lucide-react";
-import Link from "next/link";
-import { useState } from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Loader2, Mail, Shield, User } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
-interface UserData {
-  id: number;
+interface User {
+  id: string;
   name: string;
   email: string;
-  role: "jobseeker" | "employer" | "admin";
+  role: string;
   isBlocked: boolean;
-  joinedAt: string;
+  isEmployerApproved?: boolean;
+  skills?: string[];
+  bio?: string;
+  resumeUrl?: string;
+  createdAt?: string;
 }
 
-export default function ManageUsersPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [toggleLoading, setToggleLoading] = useState<number | null>(null);
+export default function AllUsersPage() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [pagination, setPagination] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [toggleLoading, setToggleLoading] = useState<string | null>(null);
 
-  // Mock data - replace with actual API call
-  const [users, setUsers] = useState<UserData[]>([
-    {
-      id: 1,
-      name: "John Doe",
-      email: "john@example.com",
-      role: "jobseeker",
-      isBlocked: false,
-      joinedAt: "2025-10-15",
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      email: "jane@techcorp.com",
-      role: "employer",
-      isBlocked: false,
-      joinedAt: "2025-10-20",
-    },
-    {
-      id: 3,
-      name: "Bob Johnson",
-      email: "bob@example.com",
-      role: "jobseeker",
-      isBlocked: true,
-      joinedAt: "2025-11-01",
-    },
-    {
-      id: 4,
-      name: "Alice Brown",
-      email: "alice@startup.io",
-      role: "employer",
-      isBlocked: false,
-      joinedAt: "2025-11-05",
-    },
-    {
-      id: 5,
-      name: "Charlie Wilson",
-      email: "charlie@example.com",
-      role: "jobseeker",
-      isBlocked: false,
-      joinedAt: "2025-11-10",
-    },
-    {
-      id: 6,
-      name: "Diana Martinez",
-      email: "diana@digital.com",
-      role: "employer",
-      isBlocked: true,
-      joinedAt: "2025-11-12",
-    },
-    {
-      id: 7,
-      name: "Admin User",
-      email: "admin@jobportal.com",
-      role: "admin",
-      isBlocked: false,
-      joinedAt: "2025-09-01",
-    },
-  ]);
+  const [page, setPage] = useState(1);
+  const [searchText, setSearchText] = useState("");
+  const [search, setSearch] = useState("");
 
-  // Filter users
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = roleFilter === "all" || user.role === roleFilter;
-    const matchesStatus =
-      statusFilter === "all" ||
-      (statusFilter === "active" && !user.isBlocked) ||
-      (statusFilter === "blocked" && user.isBlocked);
-    return matchesSearch && matchesRole && matchesStatus;
-  });
+  const [roleFilter, setRoleFilter] = useState<
+    "all" | "jobseeker" | "employer" | "admin"
+  >("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | true | false>("all");
 
-  const handleToggleBlock = async (userId: number) => {
-    setToggleLoading(userId);
+  // Fetch users
+  const fetchUsers = async () => {
+    setLoading(true);
+    try {
+      const res = await getAllUsers({
+        page,
+        limit: 10,
+        search: search.trim(),
+        role: roleFilter === "all" ? undefined : roleFilter,
+        status: statusFilter === "all" ? undefined : statusFilter,
+      });
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    setUsers((prev) =>
-      prev.map((user) =>
-        user.id === userId ? { ...user, isBlocked: !user.isBlocked } : user
-      )
-    );
-    setToggleLoading(null);
-  };
-
-  const getRoleBadgeVariant = (
-    role: string
-  ): "default" | "secondary" | "outline" => {
-    switch (role) {
-      case "admin":
-        return "default";
-      case "employer":
-        return "secondary";
-      case "jobseeker":
-        return "outline";
-      default:
-        return "outline";
+      if (res.success) {
+        setUsers(res.users || []);
+        setPagination(res.pagination);
+      } else {
+        toast.error(res.message || "Failed to fetch users");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong while fetching users");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+  // Fetch when page, search, role, or status changes
+  useEffect(() => {
+    const t = setTimeout(() => fetchUsers(), 300);
+    return () => clearTimeout(t);
+  }, [page, search, roleFilter, statusFilter]);
+
+  // Debounce search input
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      setPage(1);
+      setSearch(searchText);
+    }, 500);
+    return () => clearTimeout(delay);
+  }, [searchText]);
+
+  const handleBlockToggle = async (user: User) => {
+    setToggleLoading(user.id);
+    try {
+      const res = await toggleBlockUser(user.id);
+
+      if (res.success && res.user) {
+        toast.success(
+          `${res.user.name} has been ${
+            res.user.isBlocked ? "blocked" : "unblocked"
+          }`
+        );
+        setUsers((prev) =>
+          prev.map((u) => (u.id === res.user!.id ? res.user! : u))
+        );
+      } else {
+        toast.error(res.message || "Failed to toggle block status");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong while toggling block status");
+    } finally {
+      setToggleLoading(null);
+    }
+  };
+
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case "admin":
+        return "bg-blue-500 text-white";
+      case "employer":
+        return "bg-green-500 text-white";
+      case "jobseeker":
+        return "bg-gray-300 text-black";
+      default:
+        return "bg-gray-300 text-black";
+    }
   };
 
   return (
     <DashboardLayout userRole='admin'>
       <div className='space-y-6'>
-        {/* Header */}
-        <div className='flex items-center justify-between'>
-          <div>
-            <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
-              Manage Users
-            </h1>
-            <p className='text-gray-500 dark:text-gray-400 mt-2'>
-              View and manage all platform users
-            </p>
-          </div>
-          <Link href='/admin'>
-            <Button variant='outline'>← Back to Dashboard</Button>
-          </Link>
-        </div>
+        <h1 className='text-3xl font-bold'>All Users</h1>
 
         {/* Filters */}
-        <Card>
-          <CardContent className='p-4'>
-            <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-              <div className='relative'>
-                <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400' />
-                <Input
-                  placeholder='Search users...'
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className='pl-10'
-                />
-              </div>
-              <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder='Filter by role' />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='all'>All Roles</SelectItem>
-                  <SelectItem value='jobseeker'>Job Seeker</SelectItem>
-                  <SelectItem value='employer'>Employer</SelectItem>
-                  <SelectItem value='admin'>Admin</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder='Filter by status' />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='all'>All Status</SelectItem>
-                  <SelectItem value='active'>Active</SelectItem>
-                  <SelectItem value='blocked'>Blocked</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+        <div className='flex flex-col md:flex-row gap-4 md:items-center md:justify-between'>
+          <div className='relative w-full md:w-80'>
+            <Input
+              placeholder='Search users...'
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              className='pl-3'
+            />
+          </div>
 
-        {/* Count */}
-        <div className='text-sm text-gray-500 dark:text-gray-400'>
-          Showing {filteredUsers.length} of {users.length} users
+          <div className='flex gap-4'>
+            <Select
+              value={roleFilter}
+              onValueChange={(v) =>
+                setRoleFilter(v as "all" | "jobseeker" | "employer" | "admin")
+              }>
+              <SelectTrigger>
+                <SelectValue placeholder='Filter by role' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='all'>All Roles</SelectItem>
+                <SelectItem value='jobseeker'>Job Seeker</SelectItem>
+                <SelectItem value='employer'>Employer</SelectItem>
+                <SelectItem value='admin'>Admin</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={String(statusFilter)}
+              onValueChange={(v) =>
+                setStatusFilter(v === "all" ? "all" : v === "true")
+              }>
+              <SelectTrigger>
+                <SelectValue placeholder='Filter by status' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='all'>All Status</SelectItem>
+                <SelectItem value='false'>Active</SelectItem>
+                <SelectItem value='true'>Blocked</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        {/* Users List */}
-        {filteredUsers.length === 0 ? (
-          <Card>
-            <CardContent className='flex flex-col items-center justify-center py-12'>
-              <Users className='h-12 w-12 text-gray-400 mb-4' />
-              <h3 className='text-lg font-semibold text-gray-900 dark:text-white mb-2'>
-                No Users Found
-              </h3>
-              <p className='text-gray-500 dark:text-gray-400 text-center'>
-                Try adjusting your filters to see more results.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className='space-y-4'>
-            {filteredUsers.map((user) => (
-              <Card key={user.id}>
-                <CardContent className='p-6'>
-                  <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
-                    <div className='flex-1 space-y-3'>
-                      <div className='flex items-start gap-3'>
-                        <div className='bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg'>
-                          {user.role === "admin" ? (
-                            <Shield className='h-5 w-5 text-blue-600' />
-                          ) : (
-                            <User className='h-5 w-5 text-blue-600' />
-                          )}
-                        </div>
-                        <div className='flex-1'>
-                          <div className='flex items-center gap-2 mb-2'>
-                            <h3 className='text-lg font-semibold text-gray-900 dark:text-white'>
-                              {user.name}
-                            </h3>
-                            {user.isBlocked && (
-                              <Badge variant='destructive'>Blocked</Badge>
-                            )}
-                          </div>
-                          <div className='flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-2'>
-                            <Mail className='h-4 w-4' />
-                            <a
-                              href={`mailto:${user.email}`}
-                              className='hover:text-blue-600 dark:hover:text-blue-400'>
-                              {user.email}
-                            </a>
-                          </div>
-                          <div className='flex items-center gap-2'>
-                            <Badge variant={getRoleBadgeVariant(user.role)}>
-                              {user.role}
-                            </Badge>
-                            <span className='text-xs text-gray-500 dark:text-gray-400'>
-                              Joined {formatDate(user.joinedAt)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+        {/* Users Table */}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Approved</TableHead>
+              <TableHead className='text-right'>Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={10} className='text-center py-10'>
+                  <Loader2 className='h-6 w-6 animate-spin mx-auto' />
+                  Loading...
+                </TableCell>
+              </TableRow>
+            ) : users.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={10} className='text-center py-10'>
+                  No users found
+                </TableCell>
+              </TableRow>
+            ) : (
+              users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell className='flex items-center gap-2'>
+                    {user.role === "admin" ? (
+                      <Shield className='h-4 w-4 text-blue-500' />
+                    ) : (
+                      <User className='h-4 w-4 text-gray-500' />
+                    )}
+                    {user.name}
+                  </TableCell>
 
-                    <div className='sm:min-w-32'>
-                      {user.role !== "admin" && (
-                        <Button
-                          onClick={() => handleToggleBlock(user.id)}
-                          disabled={toggleLoading === user.id}
-                          variant={user.isBlocked ? "default" : "destructive"}
-                          className='w-full sm:w-auto'>
-                          {toggleLoading === user.id ? (
-                            <>
-                              <Loader2 className='h-4 w-4 mr-2 animate-spin' />
-                              {user.isBlocked ? "Unblocking..." : "Blocking..."}
-                            </>
-                          ) : user.isBlocked ? (
-                            "Unblock"
-                          ) : (
-                            "Block"
-                          )}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  <TableCell>
+                    <a
+                      href={`mailto:${user.email}`}
+                      className='hover:text-blue-600 flex items-center gap-1'>
+                      <Mail className='h-4 w-4' />
+                      {user.email}
+                    </a>
+                  </TableCell>
+
+                  <TableCell>
+                    <span
+                      className={`px-2 py-1 rounded ${getRoleBadgeColor(
+                        user.role
+                      )}`}>
+                      {user.role}
+                    </span>
+                  </TableCell>
+
+                  <TableCell>{user.isBlocked ? "Blocked" : "Active"}</TableCell>
+
+                  <TableCell>
+                    {user.role === "employer"
+                      ? user.isEmployerApproved
+                        ? "Approved"
+                        : "Pending"
+                      : "-"}
+                  </TableCell>
+
+                  <TableCell className='text-right'>
+                    {user.role !== "admin" && (
+                      <Button
+                        onClick={() => handleBlockToggle(user)}
+                        disabled={toggleLoading === user.id}
+                        variant={user.isBlocked ? "default" : "destructive"}>
+                        {toggleLoading === user.id ? (
+                          <>
+                            <Loader2 className='h-4 w-4 mr-2 animate-spin' />
+                            {user.isBlocked ? "Unblocking..." : "Blocking..."}
+                          </>
+                        ) : user.isBlocked ? (
+                          "Unblock"
+                        ) : (
+                          "Block"
+                        )}
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+
+        {/* Pagination */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className='flex items-center justify-between mt-4'>
+            <Button
+              variant='outline'
+              disabled={page <= 1 || loading}
+              onClick={() => setPage((p) => p - 1)}>
+              Previous
+            </Button>
+
+            <p>
+              Page {pagination.page} of {pagination.totalPages} — Showing{" "}
+              <strong>{users.length}</strong> of{" "}
+              <strong>{pagination.total}</strong> users
+            </p>
+
+            <Button
+              variant='outline'
+              disabled={page >= pagination.totalPages || loading}
+              onClick={() => setPage((p) => p + 1)}>
+              Next
+            </Button>
           </div>
         )}
       </div>

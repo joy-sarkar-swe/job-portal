@@ -1,27 +1,41 @@
-import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, Min } from 'class-validator';
-import { UserRole } from 'src/schemas/user.schema';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 
 export class GetUsersQueryDto {
   @IsOptional()
+  @IsString()
+  @IsIn(['jobseeker', 'employer', 'admin'])
+  role?: 'jobseeker' | 'employer' | 'admin';
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return undefined;
+  })
+  @IsBoolean({ message: 'Status must be a boolean' })
+  status?: boolean;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @IsOptional()
   @Type(() => Number)
-  @IsInt({ message: 'Page must be an integer' })
+  @IsInt()
   @Min(1)
   page?: number = 1;
 
   @IsOptional()
   @Type(() => Number)
-  @IsInt({ message: 'Limit must be an integer' })
+  @IsInt()
   @Min(1)
   limit?: number = 10;
-
-  @IsOptional()
-  @IsEnum(UserRole, {
-    message: 'Role must be one of: jobseeker, employer, admin',
-  })
-  role?: UserRole;
-
-  @IsOptional()
-  @Type(() => String)
-  search?: string;
 }

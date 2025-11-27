@@ -6,11 +6,13 @@ interface ToggleBlockEmployerResponse {
   statusCode: number;
   success: boolean;
   message?: string;
-  employer?: {
+  user?: {
     id: string;
     name: string;
     email: string;
+    role: string;
     isBlocked: boolean;
+    isEmployerApproved: boolean;
   };
 }
 
@@ -54,7 +56,7 @@ export async function toggleBlockUser(
       statusCode: data.statusCode || 200,
       success: true,
       message: data.message || "Employer block status updated successfully",
-      employer: data.user, // backend returns 'user' object
+      user: data.user,
     };
   } catch (error) {
     console.error("Toggle block employer error:", error);

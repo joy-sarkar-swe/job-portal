@@ -21,7 +21,7 @@ interface PendingEmployersResponse {
     currentPage: number;
     limit: number;
   };
-  pendingEmployers?: PendingEmployer[];
+  users?: PendingEmployer[];
 }
 
 export async function getPendingEmployers({
@@ -79,7 +79,7 @@ export async function getPendingEmployers({
       success: true,
       message: data.message,
       pagination: data.pagination,
-      pendingEmployers: data.pendingEmployers,
+      users: data.users,
     };
   } catch (error) {
     console.error("Get pending employers error:", error);

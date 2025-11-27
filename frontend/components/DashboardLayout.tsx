@@ -49,7 +49,7 @@ const employerNav = [
   },
   {
     title: "Post Job",
-    href: "/employer/post-job",
+    href: "/employer/jobs/create",
     icon: Briefcase,
   },
   {

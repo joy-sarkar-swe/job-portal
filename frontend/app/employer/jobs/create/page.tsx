@@ -1,9 +1,16 @@
 "use client";
 
+import { postJobAction } from "@/actions/employer/post-job";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -14,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -29,17 +36,17 @@ interface JobFormData {
 
 export default function CreateJobPage() {
   const router = useRouter();
-  const [saving, setSaving] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-
   const [formData, setFormData] = useState<JobFormData>({
     title: "",
-    company: "Tech Corp", // Pre-filled with employer's company
+    company: "Tech Corp", // prefill if needed
     location: "",
     jobType: "",
     salaryRange: "",
     description: "",
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const handleInputChange = (field: keyof JobFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -47,28 +54,37 @@ export default function CreateJobPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
-    setShowSuccess(false);
+    setIsLoading(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
 
-    // Simulate API call
+    const result = await postJobAction(
+      formData.title,
+      formData.company,
+      formData.location,
+      formData.jobType,
+      formData.salaryRange,
+      formData.description
+    );
+
+    setIsLoading(false);
+
+    if (!result.success) {
+      setErrorMessage(result.message || "Failed to create job");
+      return;
+    }
+
+    setSuccessMessage(result.message || "Job created successfully!");
+
+    // Redirect after 2 seconds
     setTimeout(() => {
-      // TODO: Save to API
-      console.log("Creating job:", formData);
-
-      setSaving(false);
-      setShowSuccess(true);
-
-      // Redirect to jobs list after 2 seconds
-      setTimeout(() => {
-        router.push("/employer/jobs");
-      }, 2000);
-    }, 1000);
+      router.push("/employer/jobs");
+    }, 2000);
   };
 
   return (
     <DashboardLayout userRole='employer'>
       <div className='space-y-6'>
-        {/* Header */}
         <div>
           <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
             Create New Job
@@ -78,17 +94,22 @@ export default function CreateJobPage() {
           </p>
         </div>
 
-        {/* Success Alert */}
-        {showSuccess && (
+        {/* Alerts */}
+        {errorMessage && (
+          <Alert variant='destructive'>
+            <AlertCircle className='h-4 w-4' />
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+        )}
+        {successMessage && (
           <Alert className='bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'>
             <CheckCircle className='h-4 w-4 text-green-600 dark:text-green-400' />
             <AlertDescription className='text-green-800 dark:text-green-200'>
-              Job created successfully! Redirecting to your jobs...
+              {successMessage} Redirecting...
             </AlertDescription>
           </Alert>
         )}
 
-        {/* Form */}
         <form onSubmit={handleSubmit}>
           <Card>
             <CardHeader>
@@ -100,11 +121,10 @@ export default function CreateJobPage() {
                 <Label htmlFor='title'>Job Title *</Label>
                 <Input
                   id='title'
-                  type='text'
                   value={formData.title}
                   onChange={(e) => handleInputChange("title", e.target.value)}
+                  disabled={isLoading}
                   required
-                  disabled={saving}
                   placeholder='e.g., Senior Frontend Developer'
                 />
               </div>
@@ -114,11 +134,10 @@ export default function CreateJobPage() {
                 <Label htmlFor='company'>Company Name *</Label>
                 <Input
                   id='company'
-                  type='text'
                   value={formData.company}
                   onChange={(e) => handleInputChange("company", e.target.value)}
+                  disabled={isLoading}
                   required
-                  disabled={saving}
                   placeholder='Your company name'
                 />
               </div>
@@ -128,14 +147,13 @@ export default function CreateJobPage() {
                 <Label htmlFor='location'>Location *</Label>
                 <Input
                   id='location'
-                  type='text'
                   value={formData.location}
                   onChange={(e) =>
                     handleInputChange("location", e.target.value)
                   }
+                  disabled={isLoading}
                   required
-                  disabled={saving}
-                  placeholder='e.g., New York, NY or Remote'
+                  placeholder='e.g., Remote or New York, NY'
                 />
               </div>
 
@@ -145,16 +163,15 @@ export default function CreateJobPage() {
                 <Select
                   value={formData.jobType}
                   onValueChange={(value) => handleInputChange("jobType", value)}
-                  required
-                  disabled={saving}>
+                  disabled={isLoading}
+                  required>
                   <SelectTrigger id='jobType'>
                     <SelectValue placeholder='Select job type' />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value='Full-time'>Full-time</SelectItem>
-                    <SelectItem value='Part-time'>Part-time</SelectItem>
-                    <SelectItem value='Remote'>Remote</SelectItem>
-                    <SelectItem value='Contract'>Contract</SelectItem>
+                    <SelectItem value='full-time'>Full-time</SelectItem>
+                    <SelectItem value='part-time'>Part-time</SelectItem>
+                    <SelectItem value='remote'>Remote</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -164,12 +181,11 @@ export default function CreateJobPage() {
                 <Label htmlFor='salaryRange'>Salary Range</Label>
                 <Input
                   id='salaryRange'
-                  type='text'
                   value={formData.salaryRange}
                   onChange={(e) =>
                     handleInputChange("salaryRange", e.target.value)
                   }
-                  disabled={saving}
+                  disabled={isLoading}
                   placeholder='e.g., $80,000 - $120,000'
                 />
                 <p className='text-xs text-muted-foreground'>Optional</p>
@@ -181,44 +197,33 @@ export default function CreateJobPage() {
                 <Textarea
                   id='description'
                   value={formData.description}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  onChange={(e) =>
                     handleInputChange("description", e.target.value)
                   }
+                  disabled={isLoading}
                   required
-                  disabled={saving}
-                  placeholder='Describe the job role, responsibilities, requirements, and benefits...'
-                  rows={10}
+                  placeholder='Describe responsibilities, requirements, benefits...'
+                  rows={8}
                   className='resize-none'
                 />
                 <p className='text-xs text-muted-foreground'>
                   {formData.description.length} characters
                 </p>
               </div>
-
-              {/* Submit Buttons */}
-              <div className='flex gap-4 pt-4'>
-                <Button
-                  type='submit'
-                  disabled={saving}
-                  className='w-full sm:w-auto'>
-                  {saving ? (
-                    <>
-                      <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                      Creating Job...
-                    </>
-                  ) : (
-                    "Create Job"
-                  )}
-                </Button>
-                <Button
-                  type='button'
-                  variant='outline'
-                  disabled={saving}
-                  onClick={() => router.push("/employer/jobs")}>
-                  Cancel
-                </Button>
-              </div>
             </CardContent>
+
+            <CardFooter className='flex gap-4'>
+              <Button type='submit' disabled={isLoading} className='flex-1'>
+                {isLoading ? (
+                  <>
+                    <Loader2 className='mr-2 h-4 w-4 animate-spin' /> Creating
+                    Job...
+                  </>
+                ) : (
+                  "Create Job"
+                )}
+              </Button>
+            </CardFooter>
           </Card>
         </form>
       </div>

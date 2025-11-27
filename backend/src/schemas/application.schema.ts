@@ -12,6 +12,9 @@ export class Application {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   jobseeker: Types.ObjectId;
 
+  @Prop({ default: false })
+  approved: boolean;
+
   @Prop({ default: Date.now })
   appliedAt: Date;
 }

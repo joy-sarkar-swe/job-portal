@@ -1,6 +1,6 @@
 "use client";
 
-import { getAccountApprovalStatus } from "@/actions/auth/account-approval-status";
+import { getEmployerOverview } from "@/actions/employer/empolyer-overview";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -17,37 +17,49 @@ import {
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+interface Stats {
+  totalJobsPosted: number;
+  totalApplicants: number;
+  notApprovedApplications: number;
+}
+
 export default function EmployerDashboard() {
-  const [isApproved, setIsApproved] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isApproved, setIsApproved] = useState<boolean | null>(null);
+  const [stats, setStats] = useState<Stats>({
+    totalJobsPosted: 0,
+    totalApplicants: 0,
+    notApprovedApplications: 0,
+  });
   const [error, setError] = useState<string | null>(null);
 
-  // Mock stats - replace with actual API calls
-  const stats = {
-    totalJobs: 12,
-    totalApplicants: 48,
-    activeJobs: 8,
-    pendingApplications: 15,
-  };
-
   useEffect(() => {
-    const fetchApprovalStatus = async () => {
+    const fetchOverview = async () => {
+      setIsLoading(true);
       try {
-        const result = await getAccountApprovalStatus();
+        const res = await getEmployerOverview();
 
-        if (result.success) {
-          setIsApproved(result.approvalStatus ?? false);
+        if (res.success && res.overview) {
+          setStats({
+            totalJobsPosted: res.overview.totalJobsPosted,
+            totalApplicants: res.overview.totalApplicants,
+            notApprovedApplications: res.overview.notApprovedApplications,
+          });
+          setIsApproved(true); // employer is approved if overview is returned
         } else {
-          setError(result.message || "Failed to fetch approval status");
+          setIsApproved(false);
+          setError(res.message || "Failed to fetch overview");
         }
-      } catch {
-        setError("An error occurred while fetching approval status");
+      } catch (err: any) {
+        console.error(err);
+        setIsApproved(false);
+        setError(err.message || "An error occurred");
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchApprovalStatus();
+    fetchOverview();
   }, []);
 
   if (isLoading) {
@@ -116,7 +128,9 @@ export default function EmployerDashboard() {
                   <Briefcase className='h-4 w-4 text-muted-foreground' />
                 </CardHeader>
                 <CardContent>
-                  <div className='text-2xl font-bold'>{stats.totalJobs}</div>
+                  <div className='text-2xl font-bold'>
+                    {stats.totalJobsPosted}
+                  </div>
                   <p className='text-xs text-muted-foreground mt-1'>
                     All job listings
                   </p>
@@ -143,31 +157,16 @@ export default function EmployerDashboard() {
               <Card>
                 <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
                   <CardTitle className='text-sm font-medium'>
-                    Active Jobs
+                    Pending Applications
                   </CardTitle>
                   <TrendingUp className='h-4 w-4 text-muted-foreground' />
                 </CardHeader>
                 <CardContent>
-                  <div className='text-2xl font-bold'>{stats.activeJobs}</div>
-                  <p className='text-xs text-muted-foreground mt-1'>
-                    Currently accepting applications
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
-                  <CardTitle className='text-sm font-medium'>
-                    Pending Reviews
-                  </CardTitle>
-                  <FileText className='h-4 w-4 text-muted-foreground' />
-                </CardHeader>
-                <CardContent>
                   <div className='text-2xl font-bold'>
-                    {stats.pendingApplications}
+                    {stats.notApprovedApplications}
                   </div>
                   <p className='text-xs text-muted-foreground mt-1'>
-                    New applications to review
+                    Applications pending admin approval
                   </p>
                 </CardContent>
               </Card>
@@ -209,7 +208,7 @@ export default function EmployerDashboard() {
                   asChild
                   variant='outline'
                   className='h-auto py-6 flex-col gap-2'>
-                  <Link href='/'>
+                  <Link href='/employer/applicants'>
                     <Users className='h-6 w-6' />
                     <span className='font-semibold'>View Applicants</span>
                     <span className='text-xs text-muted-foreground'>

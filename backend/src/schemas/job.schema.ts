@@ -23,7 +23,7 @@ export class Job {
   @Prop({ required: true, enum: JobType })
   jobType: JobType;
 
-  @Prop({ required: true })
+  @Prop({ required: false })
   salaryRange: string;
 
   @Prop({ required: true })

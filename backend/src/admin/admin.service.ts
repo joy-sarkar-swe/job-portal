@@ -171,7 +171,7 @@ export class AdminService {
   }
 
   async getAllJobs(query: GetJobsQueryDto) {
-    const { location, jobType, cursor } = query;
+    const { location, jobType, cursor, search } = query;
     const limit = query.limit ? parseInt(query.limit, 10) : 10;
 
     const filter: any = {};
@@ -186,6 +186,13 @@ export class AdminService {
 
     if (cursor) {
       filter._id = { $lt: cursor };
+    }
+
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { company: { $regex: search, $options: 'i' } },
+      ];
     }
 
     const jobs = await this.jobModel

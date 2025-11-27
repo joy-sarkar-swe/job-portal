@@ -1,5 +1,6 @@
 "use client";
 
+import { getAllJobsAction } from "@/actions/admin/get-all-jobs";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,13 +13,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { generateMockJobs } from "@/lib/mockData";
 import { Briefcase, Building2, DollarSign, MapPin, Search } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface Job {
-  id: number;
+  _id: string;
   title: string;
   company: string;
   location: string;
@@ -26,44 +26,71 @@ interface Job {
   salaryRange?: string;
   postedBy: string;
   postedAt: string;
-  status: "active" | "closed";
 }
 
 export default function AllJobsPage() {
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
 
-  // Mock data - replace with actual API call
-  const mockJobs = generateMockJobs(15, 0);
-  const [allJobs] = useState<Job[]>(
-    mockJobs.map((job, index) => ({
-      ...job,
-      postedBy:
-        index % 3 === 0
-          ? "Tech Corp"
-          : index % 3 === 1
-          ? "StartUp Inc"
-          : "Digital Solutions",
-      postedAt: new Date(2025, 10, 15 + index).toISOString().split("T")[0],
-      status: index % 5 === 0 ? "closed" : "active",
-    }))
-  );
+  // Fetch jobs from API
+  const fetchJobs = async () => {
+    setLoading(true);
+    setError("");
 
-  // Filter jobs
-  const filteredJobs = allJobs.filter((job) => {
+    try {
+      const res = await getAllJobsAction({
+        search: searchQuery || undefined,
+        jobType: typeFilter !== "all" ? typeFilter.toLowerCase() : undefined,
+        limit: 10, // or any default
+      });
+
+      if (!res.success) {
+        setError(res.message || "Failed to fetch jobs");
+        setJobs([]);
+      } else {
+        const formattedJobs: Job[] = res.jobs.map((job: any) => ({
+          _id: job._id,
+          title: job.title,
+          company: job.employer?.name || "Unknown",
+          location: job.location,
+          jobType: capitalizeFirstLetter(job.jobType),
+          salaryRange: job.salaryRange,
+          postedBy: job.employer?.name || "Unknown",
+          postedAt: new Date(job.createdAt).toISOString(),
+          status: job.status || "active",
+        }));
+
+        setJobs(formattedJobs);
+      }
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
+      setJobs([]);
+    }
+
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchJobs();
+  }, [searchQuery, typeFilter]);
+
+  const capitalizeFirstLetter = (str: string) =>
+    str.charAt(0).toUpperCase() + str.slice(1);
+
+  const filteredJobs = jobs.filter((job) => {
     const matchesSearch =
       job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.location.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || job.status === statusFilter;
-    const matchesType = typeFilter === "all" || job.jobType === typeFilter;
-    return matchesSearch && matchesStatus && matchesType;
+    return matchesSearch;
   });
 
-  const getStatusColor = (status: string) => {
-    return status === "active" ? "default" : "secondary";
-  };
+  const getStatusColor = (status: string) =>
+    status === "active" ? "default" : "secondary";
 
   const getJobTypeColor = (type: string) => {
     switch (type) {
@@ -80,13 +107,12 @@ export default function AllJobsPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
     });
-  };
 
   return (
     <DashboardLayout userRole='admin'>
@@ -119,26 +145,15 @@ export default function AllJobsPage() {
                   className='pl-10'
                 />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder='Filter by status' />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='all'>All Status</SelectItem>
-                  <SelectItem value='active'>Active</SelectItem>
-                  <SelectItem value='closed'>Closed</SelectItem>
-                </SelectContent>
-              </Select>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder='Filter by type' />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value='all'>All Types</SelectItem>
-                  <SelectItem value='Full-time'>Full-time</SelectItem>
-                  <SelectItem value='Part-time'>Part-time</SelectItem>
-                  <SelectItem value='Remote'>Remote</SelectItem>
-                  <SelectItem value='Contract'>Contract</SelectItem>
+                  <SelectItem value='full-time'>Full-time</SelectItem>
+                  <SelectItem value='part-time'>Part-time</SelectItem>
+                  <SelectItem value='remote'>Remote</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -147,11 +162,15 @@ export default function AllJobsPage() {
 
         {/* Count */}
         <div className='text-sm text-gray-500 dark:text-gray-400'>
-          Showing {filteredJobs.length} of {allJobs.length} jobs
+          Showing {filteredJobs.length} of {jobs.length} jobs
         </div>
 
-        {/* Jobs List */}
-        {filteredJobs.length === 0 ? (
+        {/* Loading/Error */}
+        {loading ? (
+          <div className='flex justify-center py-12'>Loading...</div>
+        ) : error ? (
+          <div className='text-red-500 py-4'>{error}</div>
+        ) : filteredJobs.length === 0 ? (
           <Card>
             <CardContent className='flex flex-col items-center justify-center py-12'>
               <Briefcase className='h-12 w-12 text-gray-400 mb-4' />
@@ -166,7 +185,7 @@ export default function AllJobsPage() {
         ) : (
           <div className='space-y-4'>
             {filteredJobs.map((job) => (
-              <Card key={job.id}>
+              <Card key={job._id}>
                 <CardContent className='p-6'>
                   <div className='flex flex-col gap-4'>
                     <div className='flex items-start justify-between gap-4'>
@@ -174,9 +193,6 @@ export default function AllJobsPage() {
                         <div className='flex items-center gap-2 mb-2'>
                           <Badge variant={getJobTypeColor(job.jobType)}>
                             {job.jobType}
-                          </Badge>
-                          <Badge variant={getStatusColor(job.status)}>
-                            {job.status}
                           </Badge>
                         </div>
                         <h3 className='text-xl font-semibold text-gray-900 dark:text-white mb-2'>
@@ -206,7 +222,7 @@ export default function AllJobsPage() {
                         <span className='font-medium'>{job.postedBy}</span> on{" "}
                         {formatDate(job.postedAt)}
                       </div>
-                      <Link href={`/jobs/${job.id}`}>
+                      <Link href={`/jobs/${job._id}`}>
                         <Button variant='outline' size='sm'>
                           View Details
                         </Button>

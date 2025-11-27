@@ -182,4 +182,21 @@ export class JobsService {
       }),
     };
   }
+
+  async deleteJob(userId: string, jobId: string) {
+    const job = await this.jobModel.findById(jobId);
+
+    if (!job) {
+      throw new NotFoundException('Job not found');
+    }
+    // Check if user is the owner of the job
+    if (job.employer.toString() !== userId) {
+      throw new ForbiddenException('You can only delete your own jobs');
+    }
+    await this.jobModel.deleteOne({ _id: jobId });
+    return {
+      statusCode: 200,
+      message: 'Job deleted successfully',
+    };
+  }
 }

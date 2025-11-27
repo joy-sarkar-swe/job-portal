@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -56,5 +57,12 @@ export class JobsController {
   @Roles(UserRole.EMPLOYER)
   async getJobApplicants(@GetUser() user: any, @Param('id') id: string) {
     return this.jobsService.getJobApplicants(user.userId, id);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard, EmployerApprovalGuard)
+  @Roles(UserRole.EMPLOYER)
+  async deleteJob(@GetUser() user: any, @Param('id') id: string) {
+    return this.jobsService.deleteJob(user.userId, id);
   }
 }

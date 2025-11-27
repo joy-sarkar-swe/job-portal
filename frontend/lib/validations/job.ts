@@ -20,5 +20,8 @@ export const createJobSchema = z.object({
   description: z.string().min(1, "Description is required").trim(),
 });
 
+export const updateJobSchema = createJobSchema.partial();
+
 // TypeScript type inferred from schema
 export type CreateJobInput = z.infer<typeof createJobSchema>;
+export type UpdateJobInput = z.infer<typeof updateJobSchema>;

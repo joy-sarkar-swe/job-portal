@@ -1,5 +1,6 @@
 "use client";
 
+import { deleteJobAction } from "@/actions/job/delete-job";
 import { getJobsAction, Job } from "@/actions/job/get-job";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
@@ -111,11 +112,23 @@ export default function EmployerJobsPage() {
     fetchJobs();
   }, []);
 
-  const handleDelete = (jobId: string | number) => {
-    if (confirm("Are you sure you want to delete this job?")) {
-      setJobs((prev) => prev.filter((job) => job._id !== jobId));
-      // TODO: API delete
+  const handleDelete = async (jobId: string | number) => {
+    const confirmed = confirm("Are you sure you want to delete this job?");
+    if (!confirmed) return;
+
+    // Optimistic update
+    const previousJobs = [...jobs];
+    setJobs((prev) => prev.filter((job) => job._id !== jobId));
+
+    const result = await deleteJobAction(String(jobId));
+
+    if (!result.success) {
+      alert(result.message || "Failed to delete job");
+      setJobs(previousJobs);
+      return;
     }
+
+    alert("Job deleted successfully!");
   };
 
   const handleLoadMore = () => {

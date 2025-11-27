@@ -7,7 +7,7 @@ interface RegisterResponse {
   success: boolean;
   message?: string;
   user?: {
-    id: string;
+    _id: string;
     name: string;
     email: string;
     role: "jobseeker" | "employer";

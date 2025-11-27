@@ -7,7 +7,7 @@ interface ToggleBlockEmployerResponse {
   success: boolean;
   message?: string;
   user?: {
-    id: string;
+    _id: string;
     name: string;
     email: string;
     role: string;

@@ -1,7 +1,7 @@
 "use client";
 
+import { getJobsAction, Job } from "@/actions/job/get-job";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { Job } from "@/components/JobCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,18 +22,28 @@ interface EmployerJob extends Job {
   createdAt: string;
 }
 
+// Debounce Hook
+function useDebounce(value: string, delay = 400) {
+  const [debounced, setDebounced] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+
+  return debounced;
+}
+
 const getJobTypeBadgeVariant = (
   jobType: string
 ): "default" | "secondary" | "outline" | "destructive" => {
-  switch (jobType) {
-    case "Full-time":
+  switch (jobType.toLowerCase()) {
+    case "full-time":
       return "default";
-    case "Remote":
+    case "remote":
       return "secondary";
-    case "Part-time":
+    case "part-time":
       return "outline";
-    case "Contract":
-      return "destructive";
     default:
       return "default";
   }
@@ -42,59 +52,75 @@ const getJobTypeBadgeVariant = (
 export default function EmployerJobsPage() {
   const [jobs, setJobs] = useState<EmployerJob[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Simulate API call to fetch employer's jobs
-    setTimeout(() => {
-      // Mock data - replace with actual API call
-      const mockJobs: EmployerJob[] = [
-        {
-          id: 1,
-          title: "Senior Frontend Developer",
-          company: "Tech Corp",
-          location: "New York, NY",
-          jobType: "Full-time",
-          salaryRange: "$100,000 - $150,000",
-          description: "We are seeking a talented frontend developer...",
-          applicantsCount: 12,
-          status: "active",
-          createdAt: "2025-11-15",
-        },
-        {
-          id: 2,
-          title: "Backend Engineer",
-          company: "Tech Corp",
-          location: "San Francisco, CA",
-          jobType: "Remote",
-          salaryRange: "$90,000 - $130,000",
-          description: "Join our backend team...",
-          applicantsCount: 8,
-          status: "active",
-          createdAt: "2025-11-10",
-        },
-        {
-          id: 5,
-          title: "DevOps Engineer",
-          company: "Tech Corp",
-          location: "Seattle, WA",
-          jobType: "Full-time",
-          salaryRange: "$120,000 - $180,000",
-          description: "Looking for DevOps expert...",
-          applicantsCount: 15,
-          status: "active",
-          createdAt: "2025-11-05",
-        },
-      ];
+  // Filters
+  const [searchJob, setSearchJob] = useState("");
+  const [jobTypeFilter, setJobTypeFilter] = useState<
+    "full-time" | "part-time" | "remote" | ""
+  >("");
 
-      setJobs(mockJobs);
+  // 🔥 Debounced values
+  const debouncedSearch = useDebounce(searchJob, 400);
+  const debouncedJobType = useDebounce(jobTypeFilter, 300);
+
+  const fetchJobs = async (cursor?: string) => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await getJobsAction(
+        undefined,
+        jobTypeFilter || undefined,
+        cursor,
+        "10",
+        searchJob || undefined
+      );
+
+      if (!res.success) {
+        setError(res.message);
+        setLoading(false);
+        return;
+      }
+
+      const mappedJobs: EmployerJob[] = (res.jobs || []).map((job: Job) => ({
+        ...job,
+        applicantsCount: (job as any).applicantsCount || 0,
+        status: (job as any).status || "active",
+        createdAt: (job as any).createdAt || new Date().toISOString(),
+      }));
+
+      setJobs((prev) => (cursor ? [...prev, ...mappedJobs] : mappedJobs));
+      setNextCursor(res.nextCursor ?? null);
+    } catch (err) {
+      console.error("Failed to fetch jobs:", err);
+      setError("Failed to fetch jobs. Please try again.");
+    } finally {
       setLoading(false);
-    }, 500);
+    }
+  };
+
+  // 🔥 Auto fetch on search or type filter change
+  useEffect(() => {
+    fetchJobs();
+  }, [debouncedSearch, debouncedJobType]);
+
+  // Initial load
+  useEffect(() => {
+    fetchJobs();
   }, []);
 
-  const handleDelete = (jobId: number) => {
-    // TODO: Implement delete with confirmation dialog
+  const handleDelete = (jobId: string | number) => {
     if (confirm("Are you sure you want to delete this job?")) {
-      setJobs(jobs.filter((job) => job.id !== jobId));
+      setJobs((prev) => prev.filter((job) => job._id !== jobId));
+      // TODO: API delete
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (nextCursor) {
+      fetchJobs(nextCursor);
     }
   };
 
@@ -116,29 +142,53 @@ export default function EmployerJobsPage() {
           </Button>
         </div>
 
-        {/* Loading State */}
+        {/* Filters */}
+        <div className='flex flex-col sm:flex-row gap-4 items-center'>
+          <input
+            type='text'
+            placeholder='Search Jobs'
+            value={searchJob}
+            onChange={(e) => setSearchJob(e.target.value)}
+            className='border rounded px-3 py-2 w-full sm:w-60'
+          />
+
+          <select
+            value={jobTypeFilter}
+            onChange={(e) => setJobTypeFilter(e.target.value as any)}
+            className='border rounded px-3 py-2 w-full sm:w-60'>
+            <option value=''>All Job Types</option>
+            <option value='full-time'>Full-time</option>
+            <option value='part-time'>Part-time</option>
+            <option value='remote'>Remote</option>
+          </select>
+        </div>
+
+        {/* Loading */}
         {loading && (
           <div className='flex justify-center items-center py-12'>
             <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-primary'></div>
           </div>
         )}
 
-        {/* Empty State */}
-        {!loading && jobs.length === 0 && (
+        {/* Error */}
+        {!loading && error && (
+          <div className='text-red-600 dark:text-red-400 text-center py-4'>
+            {error}
+          </div>
+        )}
+
+        {/* Empty */}
+        {!loading && jobs.length === 0 && !error && (
           <Card>
             <CardContent className='flex flex-col items-center justify-center py-16'>
               <div className='text-center space-y-4'>
                 <div className='text-6xl'>📋</div>
                 <h3 className='text-xl font-semibold text-gray-900 dark:text-white'>
-                  No Jobs Posted Yet
+                  No Jobs Found
                 </h3>
                 <p className='text-gray-600 dark:text-gray-400 max-w-md'>
-                  You haven&apos;t created any job postings yet. Create your
-                  first job to start receiving applications.
+                  Try adjusting your search or filters.
                 </p>
-                <Button asChild className='mt-4'>
-                  <Link href='/employer/jobs/create'>Post Your First Job</Link>
-                </Button>
               </div>
             </CardContent>
           </Card>
@@ -154,11 +204,11 @@ export default function EmployerJobsPage() {
             <div className='grid grid-cols-1 gap-4'>
               {jobs.map((job) => (
                 <Card
-                  key={job.id}
+                  key={job._id}
                   className='hover:shadow-lg transition-shadow'>
                   <CardContent className='p-6'>
                     <div className='flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4'>
-                      {/* Job Info */}
+                      {/* Info */}
                       <div className='flex-1 space-y-3'>
                         <div className='flex items-start gap-3 flex-wrap'>
                           <Badge variant={getJobTypeBadgeVariant(job.jobType)}>
@@ -205,7 +255,7 @@ export default function EmployerJobsPage() {
                           size='sm'
                           asChild
                           className='flex-1 lg:flex-initial lg:w-full'>
-                          <Link href={`/employer/jobs/${job.id}/applicants`}>
+                          <Link href={`/employer/jobs/${job._id}/applicants`}>
                             <Users className='h-4 w-4 mr-2' />
                             Applicants ({job.applicantsCount})
                           </Link>
@@ -215,7 +265,7 @@ export default function EmployerJobsPage() {
                           size='sm'
                           asChild
                           className='flex-1 lg:flex-initial lg:w-full'>
-                          <Link href={`/employer/jobs/${job.id}/edit`}>
+                          <Link href={`/employer/jobs/${job._id}/edit`}>
                             <Edit className='h-4 w-4 mr-2' />
                             Edit
                           </Link>
@@ -223,7 +273,7 @@ export default function EmployerJobsPage() {
                         <Button
                           variant='outline'
                           size='sm'
-                          onClick={() => handleDelete(job.id)}
+                          onClick={() => handleDelete(job._id)}
                           className='flex-1 lg:flex-initial lg:w-full text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20'>
                           <Trash2 className='h-4 w-4 mr-2' />
                           Delete
@@ -234,6 +284,12 @@ export default function EmployerJobsPage() {
                 </Card>
               ))}
             </div>
+
+            {nextCursor && (
+              <div className='flex justify-center mt-4'>
+                <Button onClick={handleLoadMore}>Load More</Button>
+              </div>
+            )}
           </>
         )}
       </div>

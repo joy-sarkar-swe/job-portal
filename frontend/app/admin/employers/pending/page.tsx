@@ -21,7 +21,7 @@ import { toggleBlockUser } from "@/actions/admin/toggle-block-user";
 import { CheckCircle, Loader2, Mail, Search, User } from "lucide-react";
 
 interface Employer {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   isBlocked: boolean;
@@ -91,7 +91,7 @@ export default function PendingEmployersPage() {
         toast.success(`${name} approved successfully!`);
 
         // Remove approved employer from state
-        setData((prev) => prev.filter((emp) => emp.id !== id));
+        setData((prev) => prev.filter((emp) => emp._id !== id));
 
         // Update pagination total
         setPagination((prev: any) => {
@@ -118,9 +118,9 @@ export default function PendingEmployersPage() {
 
   // Toggle block/unblock
   const handleBlockToggle = async (emp: Employer) => {
-    setToggleLoading(emp.id);
+    setToggleLoading(emp._id);
     try {
-      const res = await toggleBlockUser(emp.id);
+      const res = await toggleBlockUser(emp._id);
 
       if (res.success && res.user) {
         toast.success(
@@ -128,7 +128,7 @@ export default function PendingEmployersPage() {
         );
 
         setData((prev) =>
-          prev.map((u) => (u.id === res.user!.id ? res.user! : u))
+          prev.map((u) => (u._id === res.user!._id ? res.user! : u))
         );
       } else {
         toast.error(res.message || "Failed to toggle block status");
@@ -193,7 +193,7 @@ export default function PendingEmployersPage() {
               </TableRow>
             ) : (
               data.map((emp) => (
-                <TableRow key={emp.id}>
+                <TableRow key={emp._id}>
                   <TableCell className='font-medium flex items-center gap-2'>
                     <User className='h-4 w-4 text-blue-600' />
                     {emp.name}
@@ -212,7 +212,7 @@ export default function PendingEmployersPage() {
                     <Switch
                       className='cursor-pointer'
                       checked={emp.isBlocked}
-                      disabled={toggleLoading === emp.id}
+                      disabled={toggleLoading === emp._id}
                       onCheckedChange={() => handleBlockToggle(emp)}
                     />
                   </TableCell>
@@ -221,10 +221,10 @@ export default function PendingEmployersPage() {
                     <Button
                       className='cursor-pointer'
                       disabled={
-                        emp.isEmployerApproved || approvingId === emp.id
+                        emp.isEmployerApproved || approvingId === emp._id
                       }
-                      onClick={() => handleApprove(emp.id, emp.name)}>
-                      {approvingId === emp.id ? (
+                      onClick={() => handleApprove(emp._id, emp.name)}>
+                      {approvingId === emp._id ? (
                         <>
                           <Loader2 className='h-4 w-4 mr-2 animate-spin' />
                           Approving...

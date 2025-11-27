@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import {
   Application,
   ApplicationDocument,
@@ -79,20 +79,53 @@ export class JobsService {
       filter._id = { $lt: cursor };
     }
 
+    if (query.search) {
+      filter.$or = [
+        { title: { $regex: query.search, $options: 'i' } },
+        { description: { $regex: query.search, $options: 'i' } },
+        { company: { $regex: query.search, $options: 'i' } },
+        { location: { $regex: query.search, $options: 'i' } },
+        { skills: { $regex: query.search, $options: 'i' } },
+      ];
+    }
+
+    // Fetch jobs
     const jobs = await this.jobModel
       .find(filter)
       .populate('employer', 'name email')
       .sort({ _id: -1 })
       .limit(limit);
 
-    const nextCursor = jobs.length ? jobs[jobs.length - 1]._id : null;
+    // Get job IDs
+    const jobIds = jobs.map((job) => job._id);
+
+    // Aggregate total applicants per job
+    type ApplicantsAgg = { _id: Types.ObjectId; count: number };
+    const applicants = await this.applicationModel.aggregate<ApplicantsAgg>([
+      { $match: { job: { $in: jobIds } } },
+      { $group: { _id: '$job', count: { $sum: 1 } } },
+    ]);
+
+    // Convert to a lookup map
+    const applicantsMap = new Map<string, number>();
+    applicants.forEach((a) => applicantsMap.set(a._id.toString(), a.count));
+
+    // Attach applicantsCount to each job
+    const jobsWithApplicants = jobs.map((job) => ({
+      ...job.toObject(),
+      applicantsCount: applicantsMap.get(job._id.toString()) || 0,
+    }));
+
+    const nextCursor = jobsWithApplicants.length
+      ? jobsWithApplicants[jobsWithApplicants.length - 1]._id
+      : null;
 
     return {
       statusCode: 200,
       message: 'Jobs retrieved successfully',
       nextCursor,
       hasMore: !!nextCursor,
-      jobs,
+      jobs: jobsWithApplicants,
     };
   }
 

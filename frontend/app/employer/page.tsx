@@ -19,7 +19,7 @@ import { useEffect, useState } from "react";
 
 interface Stats {
   totalJobsPosted: number;
-  totalApplicants: number;
+  applicantsCount: number;
   notApprovedApplications: number;
 }
 
@@ -28,7 +28,7 @@ export default function EmployerDashboard() {
   const [isApproved, setIsApproved] = useState<boolean | null>(null);
   const [stats, setStats] = useState<Stats>({
     totalJobsPosted: 0,
-    totalApplicants: 0,
+    applicantsCount: 0,
     notApprovedApplications: 0,
   });
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +42,7 @@ export default function EmployerDashboard() {
         if (res.success && res.overview) {
           setStats({
             totalJobsPosted: res.overview.totalJobsPosted,
-            totalApplicants: res.overview.totalApplicants,
+            applicantsCount: res.overview.totalApplicants,
             notApprovedApplications: res.overview.notApprovedApplications,
           });
           setIsApproved(true); // employer is approved if overview is returned
@@ -146,7 +146,7 @@ export default function EmployerDashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className='text-2xl font-bold'>
-                    {stats.totalApplicants}
+                    {stats.applicantsCount}
                   </div>
                   <p className='text-xs text-muted-foreground mt-1'>
                     Across all jobs

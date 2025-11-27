@@ -26,7 +26,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface User {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   role: string;
@@ -92,9 +92,9 @@ export default function AllUsersPage() {
   }, [searchText]);
 
   const handleBlockToggle = async (user: User) => {
-    setToggleLoading(user.id);
+    setToggleLoading(user._id);
     try {
-      const res = await toggleBlockUser(user.id);
+      const res = await toggleBlockUser(user._id);
 
       if (res.success && res.user) {
         toast.success(
@@ -103,7 +103,7 @@ export default function AllUsersPage() {
           }`
         );
         setUsers((prev) =>
-          prev.map((u) => (u.id === res.user!.id ? res.user! : u))
+          prev.map((u) => (u._id === res.user!._id ? res.user! : u))
         );
       } else {
         toast.error(res.message || "Failed to toggle block status");
@@ -125,7 +125,7 @@ export default function AllUsersPage() {
         toast.success(`${name} approved successfully!`);
 
         // Remove approved employer from state
-        setUsers((prev) => prev.filter((u) => u.id !== id));
+        setUsers((prev) => prev.filter((u) => u._id !== id));
 
         // Update pagination
         if (pagination) {
@@ -237,7 +237,7 @@ export default function AllUsersPage() {
               </TableRow>
             ) : (
               users.map((user) => (
-                <TableRow key={user.id}>
+                <TableRow key={user._id}>
                   <TableCell className='flex items-center gap-2'>
                     {user.role === "admin" ? (
                       <Shield className='h-4 w-4 text-blue-500' />
@@ -280,9 +280,9 @@ export default function AllUsersPage() {
                     {user.role !== "admin" && (
                       <Button
                         onClick={() => handleBlockToggle(user)}
-                        disabled={toggleLoading === user.id}
+                        disabled={toggleLoading === user._id}
                         variant={user.isBlocked ? "default" : "destructive"}>
-                        {toggleLoading === user.id ? (
+                        {toggleLoading === user._id ? (
                           <>
                             <Loader2 className='h-4 w-4 mr-2 animate-spin' />
                             {user.isBlocked ? "Unblocking..." : "Blocking..."}
@@ -298,10 +298,10 @@ export default function AllUsersPage() {
                     {/* Approve button for employer */}
                     {user.role === "employer" && !user.isEmployerApproved && (
                       <Button
-                        onClick={() => handleApprove(user.id, user.name)}
-                        disabled={approvingId === user.id}
+                        onClick={() => handleApprove(user._id, user.name)}
+                        disabled={approvingId === user._id}
                         variant='default'>
-                        {approvingId === user.id ? (
+                        {approvingId === user._id ? (
                           <>
                             <Loader2 className='h-4 w-4 mr-2 animate-spin' />
                             Approving...

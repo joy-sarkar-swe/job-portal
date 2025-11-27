@@ -1,13 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
-import { Job } from './job.schema';
 
 export type ApplicationDocument = Application & Document;
 
 @Schema()
 export class Application {
   @Prop({ type: Types.ObjectId, ref: 'Job', required: true })
-  job: Types.ObjectId | Job;
+  job: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   jobseeker: Types.ObjectId;

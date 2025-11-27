@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 
 interface User {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   role: "jobseeker" | "employer" | "admin";

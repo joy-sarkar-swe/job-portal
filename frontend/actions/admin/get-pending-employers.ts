@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 
 interface PendingEmployer {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   role: string;

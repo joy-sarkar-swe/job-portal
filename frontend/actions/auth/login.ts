@@ -8,7 +8,7 @@ interface LoginResponse {
   success: boolean;
   message?: string;
   user?: {
-    id: string;
+    _id: string;
     name: string;
     email: string;
     role: "jobseeker" | "employer" | "admin";
@@ -54,16 +54,6 @@ export async function loginAction(
         message: data.message || "Login failed",
       };
     }
-
-    // // Check if user is blocked
-    // if (data.user?.isBlocked) {
-    //   return {
-    //     statusCode: 403,
-    //     success: false,
-    //     message:
-    //       "Your account has been blocked. Please contact support for assistance.",
-    //   };
-    // }
 
     // Set access token in HTTP-only cookie
     if (data.accessToken) {

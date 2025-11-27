@@ -19,4 +19,8 @@ export class GetJobsQueryDto {
   @IsNumberString({}, { message: 'limit must be a number' })
   @IsOptional()
   limit?: string;
+
+  @IsString()
+  @IsOptional()
+  search?: string;
 }

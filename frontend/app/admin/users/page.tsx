@@ -1,6 +1,6 @@
 "use client";
 
-import { approveEmployer } from "@/actions/admin/approve-employer"; // <- new
+import { approveEmployer } from "@/actions/admin/approve-employer";
 import { getAllUsers } from "@/actions/admin/get-all-users";
 import { toggleBlockUser } from "@/actions/admin/toggle-block-user";
 import { DashboardLayout } from "@/components/DashboardLayout";
@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -48,7 +49,6 @@ export default function AllUsersPage() {
   const [roleFilter, setRoleFilter] = useState<
     "all" | "jobseeker" | "employer" | "admin"
   >("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | true | false>("all");
 
   // Fetch users
   const fetchUsers = async () => {
@@ -59,7 +59,6 @@ export default function AllUsersPage() {
         limit: 10,
         search: search.trim(),
         role: roleFilter === "all" ? undefined : roleFilter,
-        status: statusFilter === "all" ? undefined : statusFilter,
       });
 
       if (res.success) {
@@ -76,11 +75,11 @@ export default function AllUsersPage() {
     }
   };
 
-  // Fetch when page, search, role, or status changes
+  // Debounced fetch when page, search, role, or status changes
   useEffect(() => {
     const t = setTimeout(() => fetchUsers(), 300);
     return () => clearTimeout(t);
-  }, [page, search, roleFilter, statusFilter]);
+  }, [page, search, roleFilter]);
 
   // Debounce search input
   useEffect(() => {
@@ -91,6 +90,7 @@ export default function AllUsersPage() {
     return () => clearTimeout(delay);
   }, [searchText]);
 
+  // Toggle block/unblock using Switch
   const handleBlockToggle = async (user: User) => {
     setToggleLoading(user._id);
     try {
@@ -116,25 +116,19 @@ export default function AllUsersPage() {
     }
   };
 
-  const handleApprove = async (id: string, name: string) => {
+  // Approve employer
+  const handleApprove = async (id: string) => {
     setApprovingId(id);
     try {
       const res = await approveEmployer(id);
 
-      if (res.success) {
-        toast.success(`${name} approved successfully!`);
-
-        // Remove approved employer from state
-        setUsers((prev) => prev.filter((u) => u._id !== id));
-
-        // Update pagination
-        if (pagination) {
-          setPagination((prev: any) => ({
-            ...prev,
-            total: prev.total - 1,
-            totalPages: Math.ceil((prev.total - 1) / 10),
-          }));
-        }
+      if (res.success && res.user) {
+        toast.success(`${res.user.name} approved successfully!`);
+        setUsers((prev) =>
+          prev.map((u) =>
+            u._id === res.user!._id ? { ...u, isEmployerApproved: true } : u
+          )
+        );
       } else {
         toast.error(res.message || "Failed to approve employer");
       }
@@ -143,19 +137,6 @@ export default function AllUsersPage() {
       toast.error("Something went wrong while approving employer");
     } finally {
       setApprovingId(null);
-    }
-  };
-
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case "admin":
-        return "bg-blue-500 text-white";
-      case "employer":
-        return "bg-green-500 text-white";
-      case "jobseeker":
-        return "bg-gray-300 text-black";
-      default:
-        return "bg-gray-300 text-black";
     }
   };
 
@@ -191,21 +172,6 @@ export default function AllUsersPage() {
                 <SelectItem value='admin'>Admin</SelectItem>
               </SelectContent>
             </Select>
-
-            <Select
-              value={String(statusFilter)}
-              onValueChange={(v) =>
-                setStatusFilter(v === "all" ? "all" : v === "true")
-              }>
-              <SelectTrigger>
-                <SelectValue placeholder='Filter by status' />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='all'>All Status</SelectItem>
-                <SelectItem value='false'>Active</SelectItem>
-                <SelectItem value='true'>Blocked</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </div>
 
@@ -230,11 +196,9 @@ export default function AllUsersPage() {
                 </TableCell>
               </TableRow>
             ) : users.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={10} className='text-center py-10'>
-                  No users found
-                </TableCell>
-              </TableRow>
+              <TableCell colSpan={10} className='text-center py-10'>
+                No users found
+              </TableCell>
             ) : (
               users.map((user) => (
                 <TableRow key={user._id}>
@@ -257,15 +221,18 @@ export default function AllUsersPage() {
                   </TableCell>
 
                   <TableCell>
-                    <span
-                      className={`px-2 py-1 rounded ${getRoleBadgeColor(
-                        user.role
-                      )}`}>
-                      {user.role}
-                    </span>
+                    <span className='px-2 py-1 rounded'>{user.role}</span>
                   </TableCell>
 
-                  <TableCell>{user.isBlocked ? "Blocked" : "Active"}</TableCell>
+                  <TableCell className='text-center'>
+                    <Switch
+                      checked={user.isBlocked}
+                      disabled={
+                        toggleLoading === user._id || user.role === "admin"
+                      }
+                      onCheckedChange={() => handleBlockToggle(user)}
+                    />
+                  </TableCell>
 
                   <TableCell>
                     {user.role === "employer"
@@ -276,29 +243,9 @@ export default function AllUsersPage() {
                   </TableCell>
 
                   <TableCell className='text-right flex justify-end gap-2'>
-                    {/* Block Toggle */}
-                    {user.role !== "admin" && (
-                      <Button
-                        onClick={() => handleBlockToggle(user)}
-                        disabled={toggleLoading === user._id}
-                        variant={user.isBlocked ? "default" : "destructive"}>
-                        {toggleLoading === user._id ? (
-                          <>
-                            <Loader2 className='h-4 w-4 mr-2 animate-spin' />
-                            {user.isBlocked ? "Unblocking..." : "Blocking..."}
-                          </>
-                        ) : user.isBlocked ? (
-                          "Unblock"
-                        ) : (
-                          "Block"
-                        )}
-                      </Button>
-                    )}
-
-                    {/* Approve button for employer */}
                     {user.role === "employer" && !user.isEmployerApproved && (
                       <Button
-                        onClick={() => handleApprove(user._id, user.name)}
+                        onClick={() => handleApprove(user._id)}
                         disabled={approvingId === user._id}
                         variant='default'>
                         {approvingId === user._id ? (

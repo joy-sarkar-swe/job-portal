@@ -181,19 +181,6 @@ export default function AdminDashboard() {
                 </Card>
               </Link>
 
-              <Link href='/admin/applications'>
-                <Card className='hover:shadow-md transition-shadow cursor-pointer'>
-                  <CardContent className='p-4'>
-                    <div className='flex items-center gap-3'>
-                      <FileText className='h-5 w-5 text-green-600' />
-                      <span className='font-medium text-gray-900 dark:text-white'>
-                        View Applications
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-
               <Link href='/admin/users'>
                 <Card className='hover:shadow-md transition-shadow cursor-pointer'>
                   <CardContent className='p-4'>

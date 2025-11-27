@@ -76,11 +76,6 @@ const adminNav = [
     icon: Briefcase,
   },
   {
-    title: "Applications",
-    href: "/admin/applications",
-    icon: FileText,
-  },
-  {
     title: "Manage Users",
     href: "/admin/users",
     icon: User,

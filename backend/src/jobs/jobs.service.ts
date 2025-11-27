@@ -172,6 +172,7 @@ export class JobsService {
         return {
           applicationId: app._id,
           appliedAt: app.appliedAt,
+          approved: app.approved,
           applicant: {
             name: jobseeker.name,
             email: jobseeker.email,

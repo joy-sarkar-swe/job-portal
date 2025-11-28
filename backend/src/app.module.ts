@@ -1,4 +1,5 @@
 import { Module, ValidationPipe } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { APP_PIPE } from '@nestjs/core';
 import { MongooseModule } from '@nestjs/mongoose';
 import { DatabaseInitService } from '../database/database-init.service';
@@ -13,9 +14,10 @@ import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
-    MongooseModule.forRoot(
-      process.env.MONGODB_URI || 'mongodb://localhost:27017/job-portal',
-    ),
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    MongooseModule.forRoot(process.env.MONGODB_URI as string),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     AuthModule,
     UserModule,

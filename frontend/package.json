@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/jsonwebtoken": "^9.0.10",
+    "@types/jsonwebtoken": "^9.0.10", /* aw5LriaEbHHJjMWH */
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

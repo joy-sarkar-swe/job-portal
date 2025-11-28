@@ -9,11 +9,11 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { GetUser } from 'common/decorators/get-user.decorator';
-import { Roles } from 'common/decorators/roles.decorator';
-import { EmployerApprovalGuard } from 'common/guards/employer-approval.guard';
-import { JwtAuthGuard } from 'common/guards/jwt-auth.guard';
-import { RolesGuard } from 'common/guards/roles.guard';
+import { GetUser } from '../../common/decorators/get-user.decorator';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { EmployerApprovalGuard } from '../../common/guards/employer-approval.guard';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
 import { UserRole } from '../schemas/user.schema';
 import { CreateJobDto } from './dto/create-job.dto';
 import { GetJobsQueryDto } from './dto/jobs-query.dto';

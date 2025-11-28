@@ -6,10 +6,10 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { Roles } from 'common/decorators/roles.decorator';
-import { JwtAuthGuard } from 'common/guards/jwt-auth.guard';
-import { RolesGuard } from 'common/guards/roles.guard';
 import { GetJobsQueryDto } from 'src/jobs/dto/jobs-query.dto';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
 import { UserRole } from '../schemas/user.schema';
 import { AdminService } from './admin.service';
 import { GetAllApplicationQueryDto } from './dto/get-application-query.dto';

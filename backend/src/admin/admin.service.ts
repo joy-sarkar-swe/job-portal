@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { GetJobsQueryDto } from 'src/jobs/dto/jobs-query.dto';
+import { GetJobsQueryDto } from '../jobs/dto/jobs-query.dto';
 import {
   Application,
   ApplicationDocument,

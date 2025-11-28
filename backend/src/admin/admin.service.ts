@@ -8,6 +8,7 @@ import {
 } from '../schemas/application.schema';
 import { Job, JobDocument } from '../schemas/job.schema';
 import { User, UserDocument, UserRole } from '../schemas/user.schema';
+import { GetAllApplicationQueryDto } from './dto/get-application-query.dto';
 import { GetUsersQueryDto } from './dto/get-user-query.dto';
 
 @Injectable()
@@ -88,14 +89,7 @@ export class AdminService {
         currentPage: page,
         limit,
       },
-      users: pendingEmployers.map((employer) => ({
-        id: employer._id,
-        name: employer.name,
-        email: employer.email,
-        role: employer.role,
-        isEmployerApproved: employer.isEmployerApproved,
-        isBlocked: employer.isBlocked,
-      })),
+      users: pendingEmployers,
     };
   }
 
@@ -132,13 +126,7 @@ export class AdminService {
         limit,
         totalPages: Math.ceil(total / limit),
       },
-      users: users.map((user) => ({
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        isBlocked: user.isBlocked,
-      })),
+      users: users,
     };
   }
 
@@ -159,14 +147,7 @@ export class AdminService {
     return {
       statusCode: 200,
       message: 'Employer approved successfully',
-      user: {
-        id: employer._id,
-        name: employer.name,
-        email: employer.email,
-        role: employer.role,
-        isBlocked: employer.isBlocked,
-        isEmployerApproved: employer.isEmployerApproved,
-      },
+      user: employer,
     };
   }
 
@@ -212,16 +193,39 @@ export class AdminService {
     };
   }
 
-  async getAllApplications() {
-    const applications = await this.applicationModel
-      .find()
-      .populate('job', 'title company location')
-      .populate('jobseeker', 'name email')
-      .sort({ appliedAt: -1 });
+  async getAllApplications(query: GetAllApplicationQueryDto) {
+    const { page = 1, limit = 10, search = '' } = query;
+    const skip = (page - 1) * limit;
+    const searchCondition = search
+      ? {
+          $or: [
+            { 'job.title': { $regex: search, $options: 'i' } },
+            { 'job.company': { $regex: search, $options: 'i' } },
+            { 'jobseeker.name': { $regex: search, $options: 'i' } },
+            { 'jobseeker.email': { $regex: search, $options: 'i' } },
+          ],
+        }
+      : {};
+    const [applications, total] = await Promise.all([
+      this.applicationModel
+        .find(searchCondition)
+        .populate('job', 'title company location')
+        .populate('jobseeker', 'name email')
+        .sort({ appliedAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      this.applicationModel.countDocuments(searchCondition),
+    ]);
 
     return {
       statusCode: 200,
       message: 'Applications retrieved successfully',
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
       applications,
     };
   }

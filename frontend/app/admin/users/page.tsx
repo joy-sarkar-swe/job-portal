@@ -22,8 +22,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, Mail, Shield, User } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Loader2, Mail, Search, Shield, User } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface User {
@@ -39,19 +39,19 @@ export default function AllUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [pagination, setPagination] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [toggleLoading, setToggleLoading] = useState<string | null>(null);
-  const [approvingId, setApprovingId] = useState<string | null>(null);
 
   const [page, setPage] = useState(1);
   const [searchText, setSearchText] = useState("");
   const [search, setSearch] = useState("");
-
   const [roleFilter, setRoleFilter] = useState<
     "all" | "jobseeker" | "employer" | "admin"
   >("all");
 
+  const [toggleLoading, setToggleLoading] = useState<string | null>(null);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+
   // Fetch users
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       const res = await getAllUsers({
@@ -73,13 +73,11 @@ export default function AllUsersPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Debounced fetch when page, search, role, or status changes
-  useEffect(() => {
-    const t = setTimeout(() => fetchUsers(), 300);
-    return () => clearTimeout(t);
   }, [page, search, roleFilter]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   // Debounce search input
   useEffect(() => {
@@ -90,51 +88,61 @@ export default function AllUsersPage() {
     return () => clearTimeout(delay);
   }, [searchText]);
 
-  // Toggle block/unblock using Switch
+  // Toggle block/unblock
   const handleBlockToggle = async (user: User) => {
+    if (user.role === "admin") return;
+
     setToggleLoading(user._id);
     try {
       const res = await toggleBlockUser(user._id);
 
-      if (res.success && res.user) {
+      if (res.success) {
         toast.success(
-          `${res.user.name} has been ${
-            res.user.isBlocked ? "blocked" : "unblocked"
-          }`
+          `${user.name} has been ${!user.isBlocked ? "blocked" : "unblocked"}`
         );
+
         setUsers((prev) =>
-          prev.map((u) => (u._id === res.user!._id ? res.user! : u))
+          prev.map((u) => {
+            if (u._id === user._id) {
+              return { ...u, isBlocked: !u.isBlocked };
+            }
+            return u;
+          })
         );
       } else {
-        toast.error(res.message || "Failed to toggle block status");
+        toast.error(res.message || "Failed to update block status");
       }
     } catch (err) {
-      console.error(err);
-      toast.error("Something went wrong while toggling block status");
+      toast.error("Something went wrong");
     } finally {
       setToggleLoading(null);
     }
   };
 
-  // Approve employer
-  const handleApprove = async (id: string) => {
+  // Approve employer → refetch for consistency
+  const handleApprove = async (id: string, name: string) => {
     setApprovingId(id);
     try {
       const res = await approveEmployer(id);
 
-      if (res.success && res.user) {
-        toast.success(`${res.user.name} approved successfully!`);
-        setUsers((prev) =>
-          prev.map((u) =>
-            u._id === res.user!._id ? { ...u, isEmployerApproved: true } : u
-          )
-        );
+      if (res.success) {
+        toast.success(`${name} approved successfully!`);
+
+        const hadDataBefore = users.length > 0;
+        const previousPage = page;
+
+        await fetchUsers(); // Refetch to stay in sync with backend
+
+        // If current page became empty after approval, go back
+        if (users.length === 0 && hadDataBefore && previousPage > 1) {
+          setPage(previousPage - 1);
+        }
       } else {
         toast.error(res.message || "Failed to approve employer");
       }
     } catch (err) {
       console.error(err);
-      toast.error("Something went wrong while approving employer");
+      toast.error("Something went wrong while approving");
     } finally {
       setApprovingId(null);
     }
@@ -146,128 +154,163 @@ export default function AllUsersPage() {
         <h1 className='text-3xl font-bold'>All Users</h1>
 
         {/* Filters */}
-        <div className='flex flex-col md:flex-row gap-4 md:items-center md:justify-between'>
+        <div className='flex flex-col md:flex-row gap-4 items-start md:items-center justify-between'>
+          {/* Search */}
           <div className='relative w-full md:w-80'>
+            <Search className='absolute left-3 top-3 h-4 w-4 text-gray-500' />
             <Input
-              placeholder='Search users...'
+              placeholder='Search by name or email...'
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              className='pl-3'
+              className='pl-10'
             />
           </div>
 
-          <div className='flex gap-4'>
-            <Select
-              value={roleFilter}
-              onValueChange={(v) =>
-                setRoleFilter(v as "all" | "jobseeker" | "employer" | "admin")
-              }>
-              <SelectTrigger>
-                <SelectValue placeholder='Filter by role' />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value='all'>All Roles</SelectItem>
-                <SelectItem value='jobseeker'>Job Seeker</SelectItem>
-                <SelectItem value='employer'>Employer</SelectItem>
-                <SelectItem value='admin'>Admin</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Role Filter */}
+          <Select
+            value={roleFilter}
+            onValueChange={(v) => {
+              setRoleFilter(v as any);
+              setPage(1);
+            }}>
+            <SelectTrigger className='w-48'>
+              <SelectValue placeholder='Filter by role' />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='all'>All Roles</SelectItem>
+              <SelectItem value='jobseeker'>Job Seeker</SelectItem>
+              <SelectItem value='employer'>Employer</SelectItem>
+              <SelectItem value='admin'>Admin</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        {/* Users Table */}
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Approved</TableHead>
-              <TableHead className='text-right'>Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
+        {/* Total Count */}
+        <p className='text-sm text-gray-600'>
+          Showing <strong>{users.length}</strong> of{" "}
+          <strong>{pagination?.total ?? 0}</strong> users
+        </p>
+
+        {/* Table */}
+        <div className='border rounded-lg overflow-hidden'>
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={10} className='text-center py-10'>
-                  <Loader2 className='h-6 w-6 animate-spin mx-auto' />
-                  Loading...
-                </TableCell>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead className='text-center'>Blocked</TableHead>
+                <TableHead>Employer Status</TableHead>
+                <TableHead className='text-right'>Action</TableHead>
               </TableRow>
-            ) : users.length === 0 ? (
-              <TableCell colSpan={10} className='text-center py-10'>
-                No users found
-              </TableCell>
-            ) : (
-              users.map((user) => (
-                <TableRow key={user._id}>
-                  <TableCell className='flex items-center gap-2'>
-                    {user.role === "admin" ? (
-                      <Shield className='h-4 w-4 text-blue-500' />
-                    ) : (
-                      <User className='h-4 w-4 text-gray-500' />
-                    )}
-                    {user.name}
-                  </TableCell>
-
-                  <TableCell>
-                    <a
-                      href={`mailto:${user.email}`}
-                      className='hover:text-blue-600 flex items-center gap-1'>
-                      <Mail className='h-4 w-4' />
-                      {user.email}
-                    </a>
-                  </TableCell>
-
-                  <TableCell>
-                    <span className='px-2 py-1 rounded'>{user.role}</span>
-                  </TableCell>
-
-                  <TableCell className='text-center'>
-                    <Switch
-                      checked={user.isBlocked}
-                      disabled={
-                        toggleLoading === user._id || user.role === "admin"
-                      }
-                      onCheckedChange={() => handleBlockToggle(user)}
-                    />
-                  </TableCell>
-
-                  <TableCell>
-                    {user.role === "employer"
-                      ? user.isEmployerApproved
-                        ? "Approved"
-                        : "Pending"
-                      : "-"}
-                  </TableCell>
-
-                  <TableCell className='text-right flex justify-end gap-2'>
-                    {user.role === "employer" && !user.isEmployerApproved && (
-                      <Button
-                        onClick={() => handleApprove(user._id)}
-                        disabled={approvingId === user._id}
-                        variant='default'>
-                        {approvingId === user._id ? (
-                          <>
-                            <Loader2 className='h-4 w-4 mr-2 animate-spin' />
-                            Approving...
-                          </>
-                        ) : (
-                          "Approve"
-                        )}
-                      </Button>
-                    )}
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className='text-center py-16'>
+                    <Loader2 className='h-8 w-8 animate-spin mx-auto text-blue-600' />
+                    <p className='mt-3 text-gray-500'>Loading users...</p>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : users.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className='text-center py-16 text-gray-500'>
+                    {search || roleFilter !== "all"
+                      ? "No users found matching your filters"
+                      : "No users in the system yet"}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                users.map((user) => (
+                  <TableRow key={user._id} className='hover:bg-gray-50'>
+                    <TableCell className='font-medium flex items-center gap-2'>
+                      {user.role === "admin" ? (
+                        <Shield className='h-5 w-5 text-purple-600' />
+                      ) : (
+                        <User className='h-5 w-5 text-gray-600' />
+                      )}
+                      {user.name}
+                    </TableCell>
+
+                    <TableCell>
+                      <a
+                        href={`mailto:${user.email}`}
+                        className='text-blue-600 hover:underline flex items-center gap-2'>
+                        <Mail className='h-4 w-4' />
+                        {user.email}
+                      </a>
+                    </TableCell>
+
+                    <TableCell>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          user.role === "admin"
+                            ? "bg-purple-100 text-purple-800"
+                            : user.role === "employer"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-green-100 text-green-800"
+                        }`}>
+                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                      </span>
+                    </TableCell>
+
+                    <TableCell className='text-center'>
+                      <Switch
+                        className='cursor-pointer'
+                        checked={user.isBlocked}
+                        disabled={
+                          toggleLoading === user._id || user.role === "admin"
+                        }
+                        onCheckedChange={() => handleBlockToggle(user)}
+                      />
+                    </TableCell>
+
+                    <TableCell>
+                      {user.role === "employer" ? (
+                        user.isEmployerApproved ? (
+                          <span className='text-green-600 font-medium'>
+                            Approved
+                          </span>
+                        ) : (
+                          <span className='text-orange-600 font-medium'>
+                            Pending
+                          </span>
+                        )
+                      ) : (
+                        <span className='text-gray-400'>—</span>
+                      )}
+                    </TableCell>
+
+                    <TableCell className='text-right'>
+                      {user.role === "employer" && !user.isEmployerApproved && (
+                        <Button
+                          className='cursor-pointer'
+                          size='sm'
+                          onClick={() => handleApprove(user._id, user.name)}
+                          disabled={approvingId === user._id}>
+                          {approvingId === user._id ? (
+                            <>
+                              <Loader2 className='h-4 w-4 mr-2 animate-spin' />
+                              Approving...
+                            </>
+                          ) : (
+                            "Approve Employer"
+                          )}
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
 
         {/* Pagination */}
         {pagination && pagination.totalPages > 1 && (
-          <div className='flex items-center justify-between mt-4'>
+          <div className='flex items-center justify-between mt-6'>
             <Button
               variant='outline'
               disabled={page <= 1 || loading}
@@ -275,10 +318,9 @@ export default function AllUsersPage() {
               Previous
             </Button>
 
-            <p>
-              Page {pagination.page} of {pagination.totalPages} — Showing{" "}
-              <strong>{users.length}</strong> of{" "}
-              <strong>{pagination.total}</strong> users
+            <p className='text-sm text-gray-600'>
+              Page <strong>{page}</strong> of{" "}
+              <strong>{pagination.totalPages}</strong>
             </p>
 
             <Button

@@ -4,15 +4,20 @@ import { applyJobAction } from "@/actions/job/apply-job";
 import { getJobByIdAction, JobDetails } from "@/actions/job/get-job-by-id";
 import { getProfileAction } from "@/actions/profile/get-profile";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
+  AlertCircle,
   ArrowLeft,
-  Building2,
-  CheckCircle,
+  Briefcase,
+  Calendar,
+  CheckCircle2,
   DollarSign,
+  Loader2,
   MapPin,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -27,48 +32,37 @@ export default function JobDetailsPage() {
   const [job, setJob] = useState<JobDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
-  const [hasApplied, setHasApplied] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showLoginAlert, setShowLoginAlert] = useState(false);
 
-  // Fetch job details and user profile
   useEffect(() => {
-    const fetchJob = async () => {
-      if (!jobId) {
-        setJob(null);
-        setLoading(false);
-        return;
-      }
-
+    const fetchData = async () => {
       setLoading(true);
-      const res = await getJobByIdAction(jobId);
-      if (res.success && res.job) {
-        setJob(res.job);
+
+      // Fetch job
+      const jobRes = await getJobByIdAction(jobId as string);
+      if (jobRes.success && jobRes.job) {
+        setJob(jobRes.job);
       } else {
         setJob(null);
       }
+
+      // Fetch user
+      try {
+        const profileRes = await getProfileAction();
+        if (profileRes.success && profileRes.user) {
+          setUser(profileRes.user);
+          setIsAuthenticated(true);
+        }
+      } catch {
+        setIsAuthenticated(false);
+      }
+
       setLoading(false);
     };
 
-    const fetchUser = async () => {
-      try {
-        const res = await getProfileAction();
-        if (res.success && res.user) {
-          setUser(res.user);
-          setIsAuthenticated(true);
-        } else {
-          setIsAuthenticated(false);
-          setUser(null);
-        }
-      } catch (err) {
-        setIsAuthenticated(false);
-        setUser(null);
-      }
-    };
-
-    fetchUser();
-    fetchJob();
+    if (jobId) fetchData();
   }, [jobId]);
 
   const handleApply = async () => {
@@ -79,30 +73,23 @@ export default function JobDetailsPage() {
     }
 
     setApplying(true);
-
     const res = await applyJobAction(jobId!);
-
-    console.log(res);
-
     setApplying(false);
 
     if (res.success) {
-      setHasApplied(true);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 5000);
     } else {
-      alert(res.message);
+      alert(res.message || "Something went wrong");
     }
   };
 
   if (loading) {
     return (
-      <div className='min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center'>
+      <div className='min-h-screen bg-linear-to-br from-slate-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center'>
         <div className='text-center'>
-          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto'></div>
-          <p className='mt-4 text-gray-600 dark:text-gray-400'>
-            Loading job details...
-          </p>
+          <div className='animate-spin rounded-full h-16 w-16 border-b-4 border-primary mb-6'></div>
+          <p className='text-xl text-gray-600'>Loading job details...</p>
         </div>
       </div>
     );
@@ -110,18 +97,18 @@ export default function JobDetailsPage() {
 
   if (!job) {
     return (
-      <div className='min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center'>
-        <div className='text-center'>
-          <h1 className='text-4xl font-bold text-gray-900 dark:text-white mb-4'>
+      <div className='min-h-screen bg-linear-to-br from-slate-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center px-6'>
+        <div className='text-center max-w-md'>
+          <Briefcase className='h-24 w-24 text-gray-300 mx-auto mb-8' />
+          <h1 className='text-4xl font-bold text-gray-900 mb-4'>
             Job Not Found
           </h1>
-          <p className='text-gray-600 dark:text-gray-400 mb-6'>
-            The job you&apos;re looking for doesn&apos;t exist or has been
-            removed.
+          <p className='text-lg text-gray-600 mb-10'>
+            The job you're looking for doesn't exist or has been removed.
           </p>
-          <Button asChild>
+          <Button size='lg' asChild className='font-bold shadow-lg'>
             <Link href='/'>
-              <ArrowLeft className='h-4 w-4 mr-2' />
+              <ArrowLeft className='h-5 w-5 mr-2' />
               Back to Jobs
             </Link>
           </Button>
@@ -130,31 +117,28 @@ export default function JobDetailsPage() {
     );
   }
 
-  const canApply = !hasApplied;
-
   return (
-    <div className='min-h-screen bg-gray-50 dark:bg-gray-900'>
-      {/* Header */}
-      <header className='bg-white dark:bg-gray-800 shadow-sm border-b'>
-        <div className='max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4'>
-          <Button variant='ghost' asChild className='mb-2'>
-            <Link href='/'>
-              <ArrowLeft className='h-4 w-4 mr-2' />
-              Back to Jobs
-            </Link>
-          </Button>
-        </div>
-      </header>
+    <div className='min-h-screen bg-linear-to-br from-slate-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900'>
+      {/* Back Button */}
+      <div className='max-w-5xl mx-auto px-6 pt-8'>
+        <Button variant='ghost' size='lg' asChild className='font-medium'>
+          <Link href='/'>
+            <ArrowLeft className='h-5 w-5 mr-2' />
+            Back to Jobs
+          </Link>
+        </Button>
+      </div>
 
       {/* Main Content */}
-      <main className='max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+      <div className='max-w-5xl mx-auto px-6 pb-20'>
         {/* Login Alert */}
         {showLoginAlert && (
-          <Alert className='mb-6 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'>
-            <AlertDescription className='text-yellow-800 dark:text-yellow-200'>
-              You must be logged in to apply for this job.{" "}
-              <Link href='/login' className='underline'>
-                Login
+          <Alert className='mt-6 bg-amber-50 border-amber-200 dark:bg-amber-900/30'>
+            <AlertCircle className='h-5 w-5 text-amber-600' />
+            <AlertDescription className='text-amber-800 font-medium'>
+              You need to be logged in to apply.{" "}
+              <Link href='/login' className='underline font-bold'>
+                Login now
               </Link>
             </AlertDescription>
           </Alert>
@@ -162,92 +146,107 @@ export default function JobDetailsPage() {
 
         {/* Success Alert */}
         {showSuccess && (
-          <Alert className='mb-6 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'>
-            <CheckCircle className='h-4 w-4 text-green-600 dark:text-green-400' />
-            <AlertDescription className='text-green-800 dark:text-green-200'>
-              Application submitted successfully! The employer will review your
-              application and contact you soon.
+          <Alert className='mt-6 bg-emerald-50 border-emerald-200 dark:bg-emerald-900/30'>
+            <CheckCircle2 className='h-6 w-6 text-emerald-600' />
+            <AlertDescription className='text-emerald-800 font-bold text-lg'>
+              Application submitted successfully! 🎉
+              <br />
+              <span className='text-base font-normal'>
+                The employer will review your profile and contact you soon.
+              </span>
             </AlertDescription>
           </Alert>
         )}
 
-        {/* Job Header Card */}
-        <Card className='mb-6'>
-          <CardHeader>
-            <div className='flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4'>
+        {/* Job Card */}
+        <Card className='mt-8 border-0 shadow-2xl overflow-hidden'>
+          <CardContent className='p-10 md:p-12'>
+            <div className='flex flex-col md:flex-row items-start justify-between gap-8'>
+              {/* Left: Job Info */}
               <div className='flex-1'>
-                <div className='flex items-center gap-2 mb-3'>
-                  <Badge variant='default'>{job.jobType.toUpperCase()}</Badge>
-                </div>
-                <CardTitle className='text-3xl mb-4'>{job.title}</CardTitle>
-                <div className='space-y-2'>
-                  <div className='flex items-center gap-2 text-gray-600 dark:text-gray-400'>
-                    <Building2 className='h-5 w-5' />
-                    <span className='text-lg font-medium'>{job.company}</span>
+                <div className='flex items-center gap-4 mb-6'>
+                  <Avatar className='h-20 w-20 ring-4 ring-white shadow-xl'>
+                    <AvatarFallback className='bg-linear-to-br from-blue-500 to-purple-600 text-white text-2xl font-bold'>
+                      {job.company.slice(0, 1)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h1 className='text-4xl font-bold text-gray-900'>
+                      {job.title}
+                    </h1>
+                    <p className='text-2xl font-medium text-gray-700 mt-1'>
+                      {job.company}
+                    </p>
                   </div>
-                  <div className='flex items-center gap-2 text-gray-600 dark:text-gray-400'>
-                    <MapPin className='h-5 w-5' />
-                    <span>{job.location}</span>
+                </div>
+
+                <div className='flex flex-wrap gap-3 mb-8'>
+                  <Badge className='text-lg px-5 py-2 font-medium bg-blue-100 text-blue-700'>
+                    {job.jobType}
+                  </Badge>
+                </div>
+
+                <div className='grid grid-cols-1 sm:grid-cols-2 gap-6 text-lg'>
+                  <div className='flex items-center gap-3 text-gray-700'>
+                    <MapPin className='h-6 w-6 text-gray-500' />
+                    <span className='font-medium'>{job.location}</span>
                   </div>
                   {job.salaryRange && (
-                    <div className='flex items-center gap-2 text-gray-600 dark:text-gray-400'>
-                      <DollarSign className='h-5 w-5' />
-                      <span className='font-semibold text-gray-900 dark:text-white'>
+                    <div className='flex items-center gap-3 text-gray-700'>
+                      <DollarSign className='h-6 w-6 text-green-600' />
+                      <span className='font-bold text-green-700'>
                         {job.salaryRange}
                       </span>
                     </div>
                   )}
+                  <div className='flex items-center gap-3 text-gray-700'>
+                    <Calendar className='h-6 w-6 text-gray-500' />
+                    <span>
+                      Posted {new Date(job.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Apply Button */}
-              <div className='sm:min-w-[200px]'>
-                {hasApplied ? (
-                  <Button className='w-full' size='lg' disabled>
-                    <CheckCircle className='h-4 w-4 mr-2' />
-                    Already Applied
-                  </Button>
-                ) : (
+              {/* Right: Apply Button */}
+              <div className='w-full md:w-auto'>
+                {
                   <Button
-                    className='w-full cursor-pointer'
-                    size='lg'
                     onClick={handleApply}
-                    disabled={applying}>
-                    {applying ? "Submitting..." : "Apply Now"}
+                    disabled={applying}
+                    className='w-full text-lg py-8 font-bold shadow-2xl hover:shadow-3xl cursor-pointer'
+                    size='lg'>
+                    {applying ? (
+                      <>
+                        <Loader2 className='h-6 w-6 mr-3 animate-spin' />
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className='h-6 w-6 mr-3' />
+                        Apply Now
+                      </>
+                    )}
                   </Button>
-                )}
+                }
               </div>
-            </div>
-          </CardHeader>
-        </Card>
-
-        {/* Job Description Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className='text-xl'>Job Description</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className='prose dark:prose-invert max-w-none'>
-              <p className='whitespace-pre-line text-gray-700 dark:text-gray-300 leading-relaxed'>
-                {job.description}
-              </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Bottom Apply Button for Mobile */}
-        {canApply && (
-          <div className='mt-6 sm:hidden'>
-            <Button
-              className='w-full cursor-pointer'
-              size='lg'
-              onClick={handleApply}
-              disabled={applying}>
-              {applying ? "Submitting..." : "Apply Now"}
-            </Button>
-          </div>
-        )}
-      </main>
+        {/* Description Card */}
+        <Card className='mt-10 border-0 shadow-xl'>
+          <CardContent className='p-10 md:p-12'>
+            <h2 className='text-3xl font-bold text-gray-900 mb-8 flex items-center gap-3'>
+              <Briefcase className='h-8 w-8 text-primary' />
+              Job Description
+            </h2>
+            <div className='prose prose-lg dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 leading-relaxed'>
+              <p className='whitespace-pre-line'>{job.description}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

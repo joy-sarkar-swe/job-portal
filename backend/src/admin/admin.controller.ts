@@ -12,6 +12,7 @@ import { RolesGuard } from 'common/guards/roles.guard';
 import { GetJobsQueryDto } from 'src/jobs/dto/jobs-query.dto';
 import { UserRole } from '../schemas/user.schema';
 import { AdminService } from './admin.service';
+import { GetAllApplicationQueryDto } from './dto/get-application-query.dto';
 import { GetUsersQueryDto } from './dto/get-user-query.dto';
 
 @Controller('admin')
@@ -53,7 +54,7 @@ export class AdminController {
   }
 
   @Get('applications')
-  async getAllApplications() {
-    return this.adminService.getAllApplications();
+  async getAllApplications(@Query() query: GetAllApplicationQueryDto) {
+    return this.adminService.getAllApplications(query);
   }
 }

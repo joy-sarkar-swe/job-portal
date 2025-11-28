@@ -51,11 +51,8 @@ export async function getAllUsers({
     });
 
     if (role) query.append("role", role);
-
-    // Only append status if it's true or false; skip if "all"
-    if (status === true || status === false) {
+    if (status === true || status === false)
       query.append("status", String(status));
-    }
 
     const res = await fetch(
       `${process.env.NEXT_BACKEND_URI}/admin/users?${query.toString()}`,

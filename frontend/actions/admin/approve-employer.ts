@@ -2,7 +2,25 @@
 
 import { cookies } from "next/headers";
 
-export async function approveEmployer(id: string) {
+interface ApprovedEmployer {
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+  isEmployerApproved: boolean;
+  isBlocked: boolean;
+}
+
+interface ApproveEmployerResponse {
+  statusCode?: number;
+  success: boolean;
+  message: string;
+  user?: ApprovedEmployer;
+}
+
+export async function approveEmployer(
+  id: string
+): Promise<ApproveEmployerResponse> {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get("accessToken")?.value;
@@ -17,7 +35,17 @@ export async function approveEmployer(id: string) {
       }
     );
 
-    return res.json();
+    const data = await res.json();
+
+    if (res.ok) {
+      return {
+        success: true,
+        message: data.message || "Employer approved",
+        user: data.user,
+      };
+    } else {
+      return { success: false, message: data.message || "Failed to approve" };
+    }
   } catch {
     return { success: false, message: "Something went wrong" };
   }

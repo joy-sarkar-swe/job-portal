@@ -15,6 +15,7 @@ export interface JobDetails {
   salaryRange: string;
   description: string;
   employer: Employer;
+  createdAt: string;
 }
 
 export interface GetJobByIdResponse {

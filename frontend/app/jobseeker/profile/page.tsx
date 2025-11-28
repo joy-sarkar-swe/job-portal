@@ -4,13 +4,20 @@ import { getProfileAction } from "@/actions/profile/get-profile";
 import { updateProfileAction } from "@/actions/profile/update-profile";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { UpdateProfileDto } from "@/lib/validations/auth";
-import { CheckCircle, Loader2 } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  FileText,
+  Loader2,
+  Mail,
+  User,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface ProfileData {
@@ -34,7 +41,6 @@ export default function EditProfilePage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch profile on mount
   useEffect(() => {
     async function fetchProfile() {
       setLoading(true);
@@ -49,11 +55,10 @@ export default function EditProfilePage() {
         });
         setError(null);
       } else {
-        setError(res.message);
+        setError(res.message || "Failed to load profile");
       }
       setLoading(false);
     }
-
     fetchProfile();
   }, []);
 
@@ -65,38 +70,34 @@ export default function EditProfilePage() {
     e.preventDefault();
     setSaving(true);
     setShowSuccess(false);
+    setError(null);
 
-    const payload: UpdateProfileDto = {
-      bio: formData.bio,
-      skills: formData.skills.split(",").map((s) => s.trim()),
-      resumeUrl: formData.resumeUrl,
+    const payload = {
+      bio: formData.bio.trim(),
+      skills: formData.skills
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+      resumeUrl: formData.resumeUrl.trim() || undefined,
     };
 
     const res = await updateProfileAction(payload);
 
-    if (res.success && res.user) {
-      setFormData({
-        name: res.user.name,
-        email: res.user.email,
-        bio: res.user.bio || "",
-        skills: res.user.skills?.join(", ") || "",
-        resumeUrl: res.user.resumeUrl || "",
-      });
+    if (res.success) {
       setShowSuccess(true);
-      setError(null);
-      setTimeout(() => setShowSuccess(false), 3000);
+      setTimeout(() => setShowSuccess(false), 4000);
     } else {
-      setError(res.message);
+      setError(res.message || "Failed to update profile");
     }
-
     setSaving(false);
   };
 
   if (loading) {
     return (
       <DashboardLayout userRole='jobseeker'>
-        <div className='flex justify-center items-center py-24'>
-          <Loader2 className='h-6 w-6 animate-spin text-gray-600 dark:text-gray-400' />
+        <div className='flex flex-col items-center justify-center py-32'>
+          <Loader2 className='h-12 w-12 animate-spin text-primary mb-4' />
+          <p className='text-gray-500'>Loading your profile...</p>
         </div>
       </DashboardLayout>
     );
@@ -104,134 +105,158 @@ export default function EditProfilePage() {
 
   return (
     <DashboardLayout userRole='jobseeker'>
-      <div className='space-y-6'>
-        <div>
-          <h1 className='text-3xl font-bold text-gray-900 dark:text-white'>
-            Edit Profile
+      <div className='mx-auto space-y-10 pb-16'>
+        {/* Header */}
+        <div className='text-center'>
+          <h1 className='text-4xl font-bold text-gray-900'>
+            Edit Your Profile
           </h1>
-          <p className='text-gray-600 dark:text-gray-400 mt-2'>
-            Update your professional information
+          <p className='text-xl text-gray-600 mt-3'>
+            Stand out to employers — complete your profile to get noticed faster
           </p>
         </div>
 
+        {/* Success Message */}
+        {showSuccess && (
+          <Alert className='border-green-200 bg-green-50 dark:bg-green-900/20'>
+            <CheckCircle2 className='h-5 w-5 text-green-600' />
+            <AlertDescription className='text-green-800 font-medium text-lg'>
+              Profile updated successfully! Employers can now see your latest
+              info
+            </AlertDescription>
+          </Alert>
+        )}
+
         {error && (
-          <Alert className='bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'>
-            <AlertDescription className='text-red-800 dark:text-red-200'>
+          <Alert className='border-red-200 bg-red-50 dark:bg-red-900/20'>
+            <AlertCircle className='h-5 w-5 text-red-600' />
+            <AlertDescription className='text-red-800 font-medium'>
               {error}
             </AlertDescription>
           </Alert>
         )}
 
-        {showSuccess && (
-          <Alert className='bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'>
-            <CheckCircle className='h-4 w-4 text-green-600 dark:text-green-400' />
-            <AlertDescription className='text-green-800 dark:text-green-200'>
-              Profile updated successfully!
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <Card>
-            <CardHeader>
-              <CardTitle>Personal Information</CardTitle>
-            </CardHeader>
-            <CardContent className='space-y-6'>
-              {/* Name */}
-              <div className='space-y-2'>
-                <Label htmlFor='name'>Full Name</Label>
-                <Input
-                  id='name'
-                  type='text'
-                  value={formData.name}
-                  disabled
-                  placeholder='Enter your full name'
-                />
-              </div>
-
-              {/* Email */}
-              <div className='space-y-2'>
-                <Label htmlFor='email'>Email</Label>
-                <Input
-                  id='email'
-                  type='email'
-                  value={formData.email}
-                  disabled
-                  placeholder='your.email@example.com'
-                />
+        {/* Profile Edit From */}
+        <Card className='lg:col-span-2 border-0 shadow-xl'>
+          <CardContent className='p-8'>
+            <form onSubmit={handleSubmit} className='space-y-8'>
+              {/* Not Editable Fields */}
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                <div className='space-y-2'>
+                  <Label className='flex items-center gap-2'>
+                    <User className='h-4 w-4 text-gray-500' />
+                    Full Name
+                  </Label>
+                  <Input
+                    value={formData.name}
+                    disabled
+                    className='bg-gray-50'
+                  />
+                </div>
+                <div className='space-y-2'>
+                  <Label className='flex items-center gap-2'>
+                    <Mail className='h-4 w-4 text-gray-500' />
+                    Email Address
+                  </Label>
+                  <Input
+                    value={formData.email}
+                    disabled
+                    className='bg-gray-50'
+                  />
+                </div>
               </div>
 
               {/* Bio */}
-              <div className='space-y-2'>
-                <Label htmlFor='bio'>Professional Bio</Label>
+              <div className='space-y-3'>
+                <Label className='flex items-center gap-2 text-base font-semibold'>
+                  <span>Professional Bio</span>
+                  <Badge variant='secondary' className='text-xs'>
+                    Recommended
+                  </Badge>
+                </Label>
                 <Textarea
-                  id='bio'
                   value={formData.bio}
                   onChange={(e) => handleInputChange("bio", e.target.value)}
-                  disabled={saving}
-                  placeholder='Tell employers about yourself...'
+                  placeholder='Enter your bio...'
                   rows={6}
-                  className='resize-none'
+                  className='resize-none text-base'
+                  disabled={saving}
+                  maxLength={500}
                 />
-                <p className='text-xs text-muted-foreground'>
-                  {formData.bio.length} / 500 characters
-                </p>
+                <div className='flex justify-between text-sm'>
+                  <span
+                    className={
+                      formData.bio.length > 450
+                        ? "text-red-600"
+                        : "text-gray-500"
+                    }>
+                    {formData.bio.length}/500
+                  </span>
+                </div>
               </div>
 
               {/* Skills */}
-              <div className='space-y-2'>
-                <Label htmlFor='skills'>Skills</Label>
+              <div className='space-y-3'>
+                <Label className='flex items-center gap-2 text-base font-semibold'>
+                  <span>Skills</span>
+                  <Badge variant='secondary' className='text-xs'>
+                    Highly Recommended
+                  </Badge>
+                </Label>
                 <Input
-                  id='skills'
-                  type='text'
                   value={formData.skills}
                   onChange={(e) => handleInputChange("skills", e.target.value)}
+                  placeholder='React, TypeScript, Node.js, Tailwind CSS, PostgreSQL'
                   disabled={saving}
-                  placeholder='React, Node.js, Python, SQL, etc.'
                 />
-                <p className='text-xs text-muted-foreground'>
-                  Separate skills with commas
+                <p className='text-sm text-gray-500'>
+                  Separate with commas (e.g. JavaScript, Nest js, Node js)
                 </p>
               </div>
 
               {/* Resume URL */}
-              <div className='space-y-2'>
-                <Label htmlFor='resumeUrl'>Resume URL</Label>
+              <div className='space-y-3'>
+                <Label className='flex items-center gap-2'>
+                  <FileText className='h-4 w-4 text-gray-500' />
+                  Resume Link
+                </Label>
                 <Input
-                  id='resumeUrl'
                   type='url'
                   value={formData.resumeUrl}
                   onChange={(e) =>
                     handleInputChange("resumeUrl", e.target.value)
                   }
+                  placeholder='https://drive.google.com/file/d/abc123/view'
                   disabled={saving}
-                  placeholder='https://example.com/resume.pdf'
                 />
-                <p className='text-xs text-muted-foreground'>
-                  Link to your resume (Google Drive, Dropbox, personal website,
-                  etc.)
+                <p className='text-sm text-gray-500'>
+                  Public link to your resume (Google Drive, Dropbox, etc.)
                 </p>
               </div>
 
-              {/* Submit Button */}
-              <div className='flex gap-4 pt-4'>
+              {/* Submit */}
+              <div className='pt-6 border-t'>
                 <Button
                   type='submit'
-                  disabled={saving}
-                  className='w-full sm:w-auto'>
+                  size='lg'
+                  className='w-full sm:w-auto font-bold shadow-lg'
+                  disabled={saving}>
                   {saving ? (
                     <>
-                      <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                      Saving...
+                      <Loader2 className='mr-3 h-5 w-5 animate-spin' />
+                      Saving Changes...
                     </>
                   ) : (
-                    "Save Changes"
+                    <>
+                      <CheckCircle2 className='mr-3 h-5 w-5' />
+                      Save Profile
+                    </>
                   )}
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        </form>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );
